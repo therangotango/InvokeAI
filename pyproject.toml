@@ -122,6 +122,7 @@ dependencies = [
 "invokeai-configure" = "invokeai.frontend.install:invokeai_configure"
 "invokeai-merge" = "invokeai.frontend.merge:invokeai_merge_diffusers"
 "invokeai-ti" = "invokeai.frontend.training:invokeai_textual_inversion"
+"invokeai-train-lora" = "invokeai.frontend.training:invokeai_lora"
 "invokeai-model-install" = "invokeai.frontend.install:invokeai_model_install"
 "invokeai-migrate3" = "invokeai.backend.install.migrate_to_3:main"
 "invokeai-update" = "invokeai.frontend.install:invokeai_update"
