@@ -32,3 +32,6 @@ class LoraTrainingConfig(BaseModel):
     report_to: typing.Optional[
         typing.Literal["all", "tensorboard", "wandb", "comet_ml"]
     ] = "tensorboard"
+
+    # If true, use xformers for more efficient attention blocks.
+    xformers: bool

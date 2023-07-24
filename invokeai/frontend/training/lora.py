@@ -28,8 +28,10 @@ def parse_args():
         "--model",
         type=str,
         required=True,
-        help="Name of the diffusers model to train against, as defined in "
-        "'configs/models.yaml' (e.g. 'sd-1/main/stable-diffusion-v1-5').",
+        help=(
+            "Name of the diffusers model to train against, as defined in "
+            "'configs/models.yaml' (e.g. 'sd-1/main/stable-diffusion-v1-5')."
+        ),
     )
 
     # Training Group
@@ -38,27 +40,42 @@ def parse_args():
         "--gradient_accumulation_steps",
         type=int,
         default=1,
-        help="The number of gradient steps to accumulate before each weight "
-        "update. This value is passed to Hugging Face Accelerate. This is an "
-        "alternative to increasing the batch size when training with limited "
-        "VRAM.",
+        help=(
+            "The number of gradient steps to accumulate before each weight"
+            " update. This value is passed to Hugging Face Accelerate. This is"
+            " an alternative to increasing the batch size when training with"
+            " limited VRAM."
+        ),
     )
     training_group.add_argument(
         "--mixed_precision",
         type=str,
         default=None,
-        help="The mixed precision mode to use ('no','fp16','bf16 or 'fp8'). "
-        "This value is passed to Hugging Face Accelerate. See "
-        "accelerate.Accelerator for more details.",
+        help=(
+            "The mixed precision mode to use ('no','fp16','bf16 or 'fp8'). "
+            "This value is passed to Hugging Face Accelerate. See "
+            "accelerate.Accelerator for more details."
+        ),
     )
     training_group.add_argument(
         "--report_to",
         type=str,
         default="tensorboard",
-        help="The integration to report results and logs to ('all', "
-        "'tensorboard', 'wandb', or 'comet_ml'). This value is passed to "
-        "Hugging Face Accelerate. See accelerate.Accelerator.log_with for more "
-        "details.",
+        help=(
+            "The integration to report results and logs to ('all',"
+            " 'tensorboard', 'wandb', or 'comet_ml'). This value is passed to"
+            " Hugging Face Accelerate. See accelerate.Accelerator.log_with for"
+            " more details."
+        ),
+    )
+    training_group.add_argument(
+        "--xformers",
+        action="store_true",
+        default=False,
+        help=(
+            "If set, xformers will be used for faster and more memory-efficient"
+            " attention blocks."
+        ),
     )
 
     return parser.parse_args()

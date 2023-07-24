@@ -1,14 +1,15 @@
 import json
 import logging
-import torch
 
 import datasets
 import diffusers
+import torch
 import transformers
 from accelerate import Accelerator
 from accelerate.logging import MultiProcessAdapter, get_logger
 from accelerate.utils import ProjectConfiguration, set_seed
 from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel
+from packaging import version
 from transformers import CLIPTextModel, CLIPTokenizer
 
 from invokeai.app.services.config import InvokeAIAppConfig
@@ -199,3 +200,9 @@ def run_lora_training(
     tokenizer, noise_scheduler, text_encoder, vae, unet = _load_models(
         accelerator, app_config, train_config, logger
     )
+
+    if train_config.xformers:
+        import xformers
+
+        unet.enable_xformers_memory_efficient_attention()
+        vae.enable_xformers_memory_efficient_attention()
