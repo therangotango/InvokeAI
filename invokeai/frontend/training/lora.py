@@ -77,6 +77,22 @@ def parse_args():
             " attention blocks."
         ),
     )
+    training_group.add_argument(
+        "--gradient_checkpointing",
+        action="store_true",
+        help=(
+            "Whether or not to use gradient checkpointing to save memory at the"
+            " expense of slower backward pass."
+        ),
+    )
+    training_group.add_argument(
+        "--learning_rate",
+        type=float,
+        default=1e-4,
+        help=(
+            "Initial learning rate (after the potential warmup period) to use."
+        ),
+    )
 
     return parser.parse_args()
 

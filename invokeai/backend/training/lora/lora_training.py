@@ -12,6 +12,7 @@ from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel
 from packaging import version
 from transformers import CLIPTextModel, CLIPTokenizer
 
+import invokeai.backend.training.lora.networks.lora as kohya_lora_module
 from invokeai.app.services.config import InvokeAIAppConfig
 from invokeai.app.services.model_manager_service import ModelManagerService
 from invokeai.backend.model_management.models.base import SubModelType
@@ -226,3 +227,28 @@ def run_lora_training(
 
         unet.enable_xformers_memory_efficient_attention()
         vae.enable_xformers_memory_efficient_attention()
+
+    # Initialize LoRA network.
+    lora_network = kohya_lora_module.create_network(
+        multiplier=1.0,
+        network_dim=None,
+        network_alpha=None,
+        vae=vae,
+        text_encoder=text_encoder,
+        unet=unet,
+        neuron_dropout=None,
+    )
+    lora_network.apply_to(
+        text_encoder, unet, apply_text_encoder=True, apply_unet=True
+    )
+
+    if train_config.gradient_checkpointing:
+        unet.enable_gradient_checkpointing()
+        text_encoder.gradient_checkpointing_enable()
+        lora_network.enable_gradient_checkpointing()
+
+    trainable_params = lora_network.prepare_optimizer_params(
+        text_encoder_lr=None,
+        unet_lr=None,
+        default_lr=train_config.learning_rate,
+    )

@@ -34,4 +34,11 @@ class LoraTrainingConfig(BaseModel):
     ] = "tensorboard"
 
     # If true, use xformers for more efficient attention blocks.
-    xformers: bool
+    xformers: bool = False
+
+    # Whether or not to use gradient checkpointing to save memory at the expense
+    # of a slower backward pass.
+    gradient_checkpointing: bool = False
+
+    # Initial learning rate (after the potential warmup period) to use.
+    learning_rate: float = 1e-4
