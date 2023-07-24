@@ -5,11 +5,17 @@ import datasets
 import diffusers
 import transformers
 from accelerate import Accelerator
-from accelerate.logging import get_logger, MultiProcessAdapter
+from accelerate.logging import MultiProcessAdapter, get_logger
 from accelerate.utils import ProjectConfiguration, set_seed
+from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel
+from transformers import CLIPTextModel, CLIPTokenizer
 
 from invokeai.app.services.config import InvokeAIAppConfig
-from invokeai.backend.training.lora.lora_training_config import LoraTrainingConfig
+from invokeai.app.services.model_manager_service import ModelManagerService
+from invokeai.backend.model_management.models.base import SubModelType
+from invokeai.backend.training.lora.lora_training_config import (
+    LoraTrainingConfig,
+)
 
 
 def _initialize_accelerator(train_config: LoraTrainingConfig) -> Accelerator:
@@ -65,7 +71,91 @@ def _initialize_logging(accelerator: Accelerator) -> MultiProcessAdapter:
     return get_logger(__name__)
 
 
-def run_lora_training(app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig):
+def _load_models(
+    app_config: InvokeAIAppConfig,
+    train_config: LoraTrainingConfig,
+    logger: logging.Logger,
+) -> tuple[
+    CLIPTokenizer,
+    DDPMScheduler,
+    CLIPTextModel,
+    AutoencoderKL,
+    UNet2DConditionModel,
+]:
+    """Load all models required for training.
+
+    Args:
+        app_config (InvokeAIAppConfig): The app config.
+        train_config (LoraTrainingConfig): The LoRA training run config.
+        logger (logging.Logger): A logger.
+
+    Returns:
+        tuple[
+            CLIPTokenizer,
+            DDPMScheduler,
+            CLIPTextModel,
+            AutoencoderKL,
+            UNet2DConditionModel,
+        ]: A tuple of loaded models.
+    """
+    model_manager = ModelManagerService(app_config, logger)
+
+    known_models = model_manager.model_names()
+
+    model_name = train_config.model.split("/")[-1]
+
+    # Find the first known model that matches model_name. Raise an exception if
+    # there is no match.
+    model_meta = next(
+        (mm for mm in known_models if mm[0].endswith(model_name)), None
+    )
+    assert model_meta is not None, f"Unknown model: {train_config.model}"
+
+    # Validate that the model is a diffusers model.
+    model_info = model_manager.model_info(*model_meta)
+    model_format = model_info["model_format"]
+    assert model_format == "diffusers", (
+        "LoRA training only supports models in the 'diffusers' format."
+        f" '{train_config.model}' is in the '{model_format}' format. "
+    )
+
+    # Get sub-model info.
+    tokenizer_info = model_manager.get_model(
+        *model_meta, submodel=SubModelType.Tokenizer
+    )
+    noise_scheduler_info = model_manager.get_model(
+        *model_meta, submodel=SubModelType.Scheduler
+    )
+    text_encoder_info = model_manager.get_model(
+        *model_meta, submodel=SubModelType.TextEncoder
+    )
+    vae_info = model_manager.get_model(*model_meta, submodel=SubModelType.Vae)
+    unet_info = model_manager.get_model(*model_meta, submodel=SubModelType.UNet)
+
+    # Load all models.
+    pipeline_args = dict(local_files_only=True)
+    tokenizer: CLIPTokenizer = CLIPTokenizer.from_pretrained(
+        tokenizer_info.location, subfolder="tokenizer", **pipeline_args
+    )
+    noise_scheduler: DDPMScheduler = DDPMScheduler.from_pretrained(
+        noise_scheduler_info.location, subfolder="scheduler", **pipeline_args
+    )
+    text_encoder: CLIPTextModel = CLIPTextModel.from_pretrained(
+        text_encoder_info.location, subfolder="text_encoder", **pipeline_args
+    )
+    vae: AutoencoderKL = AutoencoderKL.from_pretrained(
+        vae_info.location, subfolder="vae", **pipeline_args
+    )
+    unet: UNet2DConditionModel = UNet2DConditionModel.from_pretrained(
+        unet_info.location, subfolder="unet", **pipeline_args
+    )
+
+    return tokenizer, noise_scheduler, text_encoder, vae, unet
+
+
+def run_lora_training(
+    app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig
+):
     accelerator = _initialize_accelerator(train_config)
     logger = _initialize_logging(accelerator)
 
@@ -76,4 +166,8 @@ def run_lora_training(app_config: InvokeAIAppConfig, train_config: LoraTrainingC
     logger.info("Starting LoRA Training.")
     logger.info(
         f"Configuration:\n{json.dumps(train_config.dict(), indent=2, default=str)}"
+    )
+
+    tokenizer, noise_scheduler, text_encoder, vae, unet = _load_models(
+        app_config, train_config, logger
     )
