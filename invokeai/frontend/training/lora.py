@@ -85,13 +85,40 @@ def parse_args():
             " expense of slower backward pass."
         ),
     )
-    training_group.add_argument(
+
+    # Optimizer Group
+    optimizer_group = parser.add_argument_group("Optimizer")
+    optimizer_group.add_argument(
         "--learning_rate",
         type=float,
         default=1e-4,
         help=(
             "Initial learning rate (after the potential warmup period) to use."
         ),
+    )
+    parser.add_argument(
+        "--adam_beta1",
+        type=float,
+        default=0.9,
+        help="The beta1 parameter for the Adam optimizer.",
+    )
+    parser.add_argument(
+        "--adam_beta2",
+        type=float,
+        default=0.999,
+        help="The beta2 parameter for the Adam optimizer.",
+    )
+    parser.add_argument(
+        "--adam_weight_decay",
+        type=float,
+        default=1e-2,
+        help="Weight decay parameter for the Adam optimizer.",
+    )
+    parser.add_argument(
+        "--adam_epsilon",
+        type=float,
+        default=1e-08,
+        help="Epsilon value for the Adam optimizer",
     )
 
     return parser.parse_args()

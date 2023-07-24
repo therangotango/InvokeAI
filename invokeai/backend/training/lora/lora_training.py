@@ -203,6 +203,20 @@ def _load_models(
     return tokenizer, noise_scheduler, text_encoder, vae, unet
 
 
+def _initialize_optimizer(
+    train_config: LoraTrainingConfig, trainable_params: list
+) -> torch.optim.Optimizer:
+    """Initialize an optimizer based on the train_config."""
+    # TODO(ryand): Add support for 8-bit Adam optimizer.
+    return torch.optim.AdamW(
+        trainable_params,
+        lr=train_config.learning_rate,
+        betas=(train_config.adam_beta1, train_config.adam_beta2),
+        weight_decay=train_config.adam_weight_decay,
+        eps=train_config.adam_epsilon,
+    )
+
+
 def run_lora_training(
     app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig
 ):
@@ -252,3 +266,5 @@ def run_lora_training(
         unet_lr=None,
         default_lr=train_config.learning_rate,
     )
+
+    optimizer = _initialize_optimizer(train_config, trainable_params)

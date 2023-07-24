@@ -42,3 +42,9 @@ class LoraTrainingConfig(BaseModel):
 
     # Initial learning rate (after the potential warmup period) to use.
     learning_rate: float = 1e-4
+
+    # Adam optimizer params.
+    adam_beta1: float = 0.9
+    adam_beta2: float = 0.999
+    adam_weight_decay: float = 1e-2
+    adam_epsilon: float = 1e-8
