@@ -1,5 +1,6 @@
 import json
 import logging
+import torch
 
 import datasets
 import diffusers
@@ -72,6 +73,7 @@ def _initialize_logging(accelerator: Accelerator) -> MultiProcessAdapter:
 
 
 def _load_models(
+    accelerator: Accelerator,
     app_config: InvokeAIAppConfig,
     train_config: LoraTrainingConfig,
     logger: logging.Logger,
@@ -82,7 +84,8 @@ def _load_models(
     AutoencoderKL,
     UNet2DConditionModel,
 ]:
-    """Load all models required for training.
+    """Load all models required for training from disk, transfer them to the
+    target training device and cast their weight dtypes.
 
     Args:
         app_config (InvokeAIAppConfig): The app config.
@@ -150,6 +153,31 @@ def _load_models(
         unet_info.location, subfolder="unet", **pipeline_args
     )
 
+    # Disable gradient calculation for model weights to save memory.
+    text_encoder.requires_grad_(False)
+    vae.requires_grad_(False)
+    unet.requires_grad_(False)
+
+    # Move models to device, and cast dtype.
+    weight_dtype = torch.float32
+    if (
+        accelerator.mixed_precision is None
+        or accelerator.mixed_precision == "no"
+    ):
+        weight_dtype = torch.float32
+    elif accelerator.mixed_precision == "fp16":
+        weight_dtype = torch.float16
+    else:
+        # TODO(ryand): Add support for more precision types (specifically bf16)
+        # and test.
+        raise NotImplementedError(
+            f"mixed_precision mode '{accelerator.mixed_precision}' is not yet"
+            " supported."
+        )
+    text_encoder.to(accelerator.device, dtype=weight_dtype)
+    vae.to(accelerator.device, dtype=weight_dtype)
+    unet.to(accelerator.device, dtype=weight_dtype)
+
     return tokenizer, noise_scheduler, text_encoder, vae, unet
 
 
@@ -169,5 +197,5 @@ def run_lora_training(
     )
 
     tokenizer, noise_scheduler, text_encoder, vae, unet = _load_models(
-        app_config, train_config, logger
+        accelerator, app_config, train_config, logger
     )
