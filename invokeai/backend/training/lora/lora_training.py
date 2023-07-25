@@ -12,6 +12,7 @@ from accelerate import Accelerator
 from accelerate.logging import MultiProcessAdapter, get_logger
 from accelerate.utils import ProjectConfiguration, set_seed
 from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel
+from diffusers.optimization import get_scheduler
 from torchvision import transforms
 from transformers import CLIPTextModel, CLIPTokenizer
 
@@ -401,6 +402,34 @@ def run_lora_training(
     optimizer = _initialize_optimizer(train_config, trainable_params)
 
     data_loader = _initialize_dataset(train_config, accelerator, tokenizer)
+
+    # TODO(ryand): Revisit and more clearly document the definition of 'steps'.
+    # Consider interactions with batch_size, gradient_accumulation_steps, and
+    # number of training processes.
+    lr_scheduler = get_scheduler(
+        train_config.lr_scheduler,
+        optimizer=optimizer,
+        num_warmup_steps=train_config.lr_warmup_steps
+        * train_config.gradient_accumulation_steps,
+        num_training_steps=train_config.max_train_steps
+        * train_config.gradient_accumulation_steps,
+    )
+
+    (
+        unet,
+        text_encoder,
+        lora_network,
+        optimizer,
+        dataloader,
+        lr_scheduler,
+    ) = accelerator.prepare(
+        unet,
+        text_encoder,
+        lora_network,
+        optimizer,
+        data_loader,
+        lr_scheduler,
+    )
 
     x = train_features, train_labels = next(iter(data_loader))
     logger.info(x.keys())

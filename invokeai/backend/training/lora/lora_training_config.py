@@ -1,14 +1,30 @@
-from pathlib import Path
-from pydantic import BaseModel
 import typing
+from pathlib import Path
+
+from pydantic import BaseModel
 
 
 class LoraTrainingConfig(BaseModel):
     """The configuration for a LoRA training run."""
 
+    ##################
+    # Output Configs
+    ##################
+
     # The output directory where the training outputs (model checkpoints, logs,
     # intermediate predictions) will be written.
     output_dir: Path
+
+    # The integration to report results and logs to ('all', 'tensorboard',
+    # 'wandb', or 'comet_ml'). This value is passed to Hugging Face Accelerate.
+    # See accelerate.Accelerator.log_with for more details.
+    report_to: typing.Optional[
+        typing.Literal["all", "tensorboard", "wandb", "comet_ml"]
+    ] = "tensorboard"
+
+    ##################
+    # General Configs
+    ##################
 
     # The name of the diffusers model to train against, as defined in
     # 'configs/models.yaml'.
@@ -26,19 +42,15 @@ class LoraTrainingConfig(BaseModel):
         typing.Literal["no", "fp16", "bf16", "fp8"]
     ] = None
 
-    # The integration to report results and logs to ('all', 'tensorboard',
-    # 'wandb', or 'comet_ml'). This value is passed to Hugging Face Accelerate.
-    # See accelerate.Accelerator.log_with for more details.
-    report_to: typing.Optional[
-        typing.Literal["all", "tensorboard", "wandb", "comet_ml"]
-    ] = "tensorboard"
-
     # If true, use xformers for more efficient attention blocks.
     xformers: bool = False
 
     # Whether or not to use gradient checkpointing to save memory at the expense
     # of a slower backward pass.
     gradient_checkpointing: bool = False
+
+    # Total number of training steps to perform.
+    max_train_steps: int = 5000
 
     #####################
     # Optimizer Configs
@@ -52,6 +64,20 @@ class LoraTrainingConfig(BaseModel):
     adam_beta2: float = 0.999
     adam_weight_decay: float = 1e-2
     adam_epsilon: float = 1e-8
+
+    # The number of warmup steps in the learning rate scheduler. Only applied to
+    # schedulers that support warmup. See lr_scheduler.
+    lr_warmup_steps: int = 0
+
+    # The learning rate scheduler to use.
+    lr_scheduler: typing.Literal[
+        "linear",
+        "cosine",
+        "cosine_with_restarts",
+        "polynomial",
+        "constant",
+        "constant_with_warmup",
+    ] = "constant"
 
     ##################
     # Dataset Configs
