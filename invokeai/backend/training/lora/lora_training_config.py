@@ -55,6 +55,37 @@ class LoraTrainingConfig(BaseModel):
     # Total number of training steps to perform.
     max_train_steps: int = 5000
 
+    # The interval (in epochs) at which to save checkpoints. If None, checkpoint
+    # won't be triggered by this setting. It is recommend to only set one of
+    # save_every_n_epochs and save_every_n_steps to a non-None value.
+    save_every_n_epochs: typing.Optional[int] = 1
+
+    # The interval (in steps) at which to save checkpoints. If None, checkpoint
+    # won't be triggered by this setting. It is recommend to only set one of
+    # save_every_n_epochs and save_every_n_steps to a non-None value.
+    save_every_n_steps: typing.Optional[int] = None
+
+    # The maximum number of checkpoints to keep. New checkpoints will replace
+    # earlier checkpoints to stay under this limit. Note that this limit is
+    # applied to 'step' and 'epoch' checkpoints separately.
+    max_checkpoints: typing.Optional[int] = None
+
+    # The scale of noise offset. This can be used to train a model capable of
+    # generating very light or dark images.
+    # (https://www.crosslabs.org//blog/diffusion-with-offset-noise)
+    noise_offset: float = 0.0
+
+    # The prediction_type that shall be used for training. Choose between
+    # 'epsilon' or 'v_prediction' or leave `None`. If left to `None` the default
+    # prediction type of the scheduler: `noise_scheduler.config.prediction_type`
+    # is chosen.
+    prediction_type: typing.Optional[
+        typing.Literal["epsilon", "v_prediction"]
+    ] = None
+
+    # Max gradient norm for clipping. Set to None for no clipping.
+    max_grad_norm: typing.Optional[float] = 1.0
+
     #####################
     # Optimizer Configs
     #####################

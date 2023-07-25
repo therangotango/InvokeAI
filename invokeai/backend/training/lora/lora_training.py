@@ -1,7 +1,9 @@
 import json
 import logging
+import math
 import os
 import random
+import shutil
 
 import datasets
 import diffusers
@@ -14,6 +16,7 @@ from accelerate.utils import ProjectConfiguration, set_seed
 from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel
 from diffusers.optimization import get_scheduler
 from torchvision import transforms
+from tqdm import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer
 
 import invokeai.backend.training.lora.networks.lora as kohya_lora_module
@@ -26,6 +29,7 @@ from invokeai.backend.training.lora.lib.original_unet import (
 from invokeai.backend.training.lora.lora_training_config import (
     LoraTrainingConfig,
 )
+from invokeai.backend.training.lora.networks.lora import LoRANetwork
 
 
 def _initialize_accelerator(train_config: LoraTrainingConfig) -> Accelerator:
@@ -79,6 +83,39 @@ def _initialize_logging(accelerator: Accelerator) -> MultiProcessAdapter:
         diffusers.utils.logging.set_verbosity_error()
 
     return get_logger(__name__)
+
+
+def _get_weight_type(accelerator: Accelerator):
+    """Extract torch.dtype from Accelerator config.
+
+    Args:
+        accelerator (Accelerator): The Hugging Face Accelerator.
+
+    Raises:
+        NotImplementedError: If the accelerator's mixed_precision configuration
+        is not recognized.
+
+    Returns:
+        torch.dtype: The weight type inferred from the accelerator
+        mixed_precision configuration.
+    """
+    weight_dtype: torch.dtype = torch.float32
+    if (
+        accelerator.mixed_precision is None
+        or accelerator.mixed_precision == "no"
+    ):
+        weight_dtype = torch.float32
+    elif accelerator.mixed_precision == "fp16":
+        weight_dtype = torch.float16
+    else:
+        # TODO(ryand): Add support for more precision types (specifically bf16)
+        # and test.
+        raise NotImplementedError(
+            f"mixed_precision mode '{accelerator.mixed_precision}' is not yet"
+            " supported."
+        )
+
+    return weight_dtype
 
 
 def _load_models(
@@ -184,22 +221,12 @@ def _load_models(
     vae.requires_grad_(False)
     unet.requires_grad_(False)
 
-    # Move models to device, and cast dtype.
-    weight_dtype = torch.float32
-    if (
-        accelerator.mixed_precision is None
-        or accelerator.mixed_precision == "no"
-    ):
-        weight_dtype = torch.float32
-    elif accelerator.mixed_precision == "fp16":
-        weight_dtype = torch.float16
-    else:
-        # TODO(ryand): Add support for more precision types (specifically bf16)
-        # and test.
-        raise NotImplementedError(
-            f"mixed_precision mode '{accelerator.mixed_precision}' is not yet"
-            " supported."
-        )
+    # Put models in 'eval' mode.
+    text_encoder.eval()
+    vae.eval()
+    unet.eval()
+
+    weight_dtype = _get_weight_type(accelerator)
     text_encoder.to(accelerator.device, dtype=weight_dtype)
     vae.to(accelerator.device, dtype=weight_dtype)
     unet.to(accelerator.device, dtype=weight_dtype)
@@ -349,6 +376,64 @@ def _initialize_dataset(
     return train_dataloader
 
 
+def _save_checkpoint(
+    idx: int,
+    prefix: str,
+    network: LoRANetwork,
+    save_dtype: torch.dtype,
+    train_config: LoraTrainingConfig,
+    logger: logging.Logger,
+):
+    """Save a checkpoint. Old checkpoints are deleted if necessary to respect
+    the train_config.max_checkpoints config.
+
+    Args:
+        idx (int): The checkpoint index (typically step count or epoch).
+        prefix (str): The checkpoint naming prefix. Usually 'epoch' or 'step'.
+        accelerator (Accelerator): Accelerator whose state will be saved.
+        train_config (LoraTrainingConfig): Training configuration.
+        logger (logging.Logger): Logger.
+    """
+    full_prefix = f"checkpoint_{prefix}-"
+
+    # Before saving a checkpoint, check if this save would put us over the
+    # max_checkpoints limit.
+    if train_config.max_checkpoints is not None:
+        checkpoints = os.listdir(train_config.output_dir)
+        checkpoints = [d for d in checkpoints if d.startswith(full_prefix)]
+        checkpoints = sorted(
+            checkpoints,
+            key=lambda x: int(os.path.splitext(x)[0].split("-")[-1]),
+        )
+
+        if len(checkpoints) >= train_config.max_checkpoints:
+            num_to_remove = len(checkpoints) - train_config.max_checkpoints + 1
+            checkpoints_to_remove = checkpoints[0:num_to_remove]
+
+            logger.info(
+                f"{len(checkpoints)} checkpoints already"
+                " exist. Removing"
+                f" {len(checkpoints_to_remove)} checkpoints."
+            )
+            logger.info(f"Removing checkpoints: {checkpoints_to_remove}")
+
+            for checkpoint_to_remove in checkpoints_to_remove:
+                checkpoint_to_remove = os.path.join(
+                    train_config.output_dir, checkpoint_to_remove
+                )
+                if os.path.isfile(checkpoint_to_remove):
+                    # Delete checkpoint file.
+                    os.remove(checkpoint_to_remove)
+                else:
+                    # Delete checkpoint directory.
+                    shutil.rmtree(checkpoint_to_remove)
+
+    save_path = os.path.join(train_config.output_dir, f"{full_prefix}{idx:0>8}")
+    network.save_weights(save_path, save_dtype, None)
+    # accelerator.save_state(save_path)
+    logger.info(f"Saved state to {save_path}")
+
+
 def run_lora_training(
     app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig
 ):
@@ -368,6 +453,8 @@ def run_lora_training(
         f"Configuration:\n{json.dumps(train_config.dict(), indent=2, default=str)}"
     )
 
+    weight_dtype = _get_weight_type(accelerator)
+
     tokenizer, noise_scheduler, text_encoder, vae, unet = _load_models(
         accelerator, app_config, train_config, logger
     )
@@ -375,7 +462,7 @@ def run_lora_training(
     if train_config.xformers:
         import xformers
 
-        unet.enable_xformers_memory_efficient_attention()
+        unet.set_use_memory_efficient_attention(True, False)
         vae.enable_xformers_memory_efficient_attention()
 
     # Initialize LoRA network.
@@ -397,6 +484,14 @@ def run_lora_training(
         text_encoder.gradient_checkpointing_enable()
         lora_network.enable_gradient_checkpointing()
 
+        # At load time, the VAE, UNet, and text encoder are put into 'eval'
+        # mode. According to kohya_ss, networks must be in 'train' mode to
+        # enable gradient checkpointing.
+        # TODO(ryand): Test that this is true, and test if it has other
+        # implications (e.g. dropout, batch norm, etc.).
+        unet.train()
+        text_encoder.train()
+
     trainable_params = lora_network.prepare_optimizer_params(
         text_encoder_lr=None,
         unet_lr=None,
@@ -410,7 +505,7 @@ def run_lora_training(
     # TODO(ryand): Revisit and more clearly document the definition of 'steps'.
     # Consider interactions with batch_size, gradient_accumulation_steps, and
     # number of training processes.
-    lr_scheduler = get_scheduler(
+    lr_scheduler: torch.optim.lr_scheduler.LRScheduler = get_scheduler(
         train_config.lr_scheduler,
         optimizer=optimizer,
         num_warmup_steps=train_config.lr_warmup_steps
@@ -419,14 +514,14 @@ def run_lora_training(
         * train_config.gradient_accumulation_steps,
     )
 
-    (
-        unet,
-        text_encoder,
-        lora_network,
-        optimizer,
-        dataloader,
-        lr_scheduler,
-    ) = accelerator.prepare(
+    prepared_result: tuple[
+        KohyaUNet2DConditionModel,
+        CLIPTextModel,
+        LoRANetwork,
+        torch.optim.Optimizer,
+        torch.utils.data.DataLoader,
+        torch.optim.lr_scheduler.LRScheduler,
+    ] = accelerator.prepare(
         unet,
         text_encoder,
         lora_network,
@@ -434,6 +529,26 @@ def run_lora_training(
         data_loader,
         lr_scheduler,
     )
+    (
+        unet,
+        text_encoder,
+        lora_network,
+        optimizer,
+        dataloader,
+        lr_scheduler,
+    ) = prepared_result
+
+    # Calculate number of epochs and total training steps.
+    # Note: A "step" represents a single optimizer weight update operation (i.e.
+    # takes into account gradient accumulation steps).
+    num_steps_per_epoch = math.ceil(
+        len(dataloader) / train_config.gradient_accumulation_steps
+    )
+    num_train_epochs = math.ceil(
+        train_config.max_train_steps / num_steps_per_epoch
+    )
+
+    lora_network.prepare_grad_etc(text_encoder, unet)
 
     # Initialize the trackers we use, and store the training configuration.
     if accelerator.is_main_process:
@@ -463,7 +578,138 @@ def run_lora_training(
     )
     logger.info(f"  Total optimization steps = {train_config.max_train_steps}")
 
-    x = train_features, train_labels = next(iter(data_loader))
-    logger.info(x.keys())
-    logger.info(x["pixel_values"].shape)
-    logger.info(x["input_ids"].shape)
+    global_step = 0
+    first_epoch = 0
+
+    progress_bar = tqdm(
+        range(global_step, train_config.max_train_steps),
+        # Only show the progress bar once on each machine.
+        disable=not accelerator.is_local_main_process,
+    )
+    progress_bar.set_description("Steps")
+
+    for epoch in range(first_epoch, num_train_epochs):
+        logger.info(f"Epoch: {epoch} / {num_train_epochs}")
+
+        lora_network.on_epoch_start(text_encoder, unet)
+
+        train_loss = 0.0
+        for step, batch in enumerate(dataloader):
+            with accelerator.accumulate(lora_network):
+                # Convert images to latent space.
+                with torch.no_grad():
+                    latents = vae.encode(
+                        batch["pixel_values"].to(dtype=weight_dtype)
+                    ).latent_dist.sample()
+                    latents = latents * vae.config.scaling_factor
+
+                # Sample noise that we'll add to the latents.
+                noise = torch.randn_like(latents)
+                if train_config.noise_offset:
+                    # https://www.crosslabs.org//blog/diffusion-with-offset-noise
+                    noise += train_config.noise_offset * torch.randn(
+                        (latents.shape[0], latents.shape[1], 1, 1),
+                        device=latents.device,
+                    )
+
+                batch_size = latents.shape[0]
+                # Sample a random timestep for each image.
+                timesteps = torch.randint(
+                    0,
+                    noise_scheduler.config.num_train_timesteps,
+                    (batch_size,),
+                    device=latents.device,
+                )
+                timesteps = timesteps.long()
+
+                # Add noise to the latents according to the noise magnitude at
+                # each timestep (this is the forward diffusion process).
+                noisy_latents = noise_scheduler.add_noise(
+                    latents, noise, timesteps
+                )
+
+                # Get the text embedding for conditioning
+                encoder_hidden_states = text_encoder(batch["input_ids"])[0]
+
+                # Get the target for loss depending on the prediction type.
+                if train_config.prediction_type is not None:
+                    # Set the prediction_type of scheduler if it's defined in
+                    # train_config.
+                    noise_scheduler.register_to_config(
+                        prediction_type=train_config.prediction_type
+                    )
+                if noise_scheduler.config.prediction_type == "epsilon":
+                    target = noise
+                elif noise_scheduler.config.prediction_type == "v_prediction":
+                    target = noise_scheduler.get_velocity(
+                        latents, noise, timesteps
+                    )
+                else:
+                    raise ValueError(
+                        "Unknown prediction type"
+                        f" {noise_scheduler.config.prediction_type}"
+                    )
+
+                # Predict the noise residual.
+                model_pred = unet(
+                    noisy_latents, timesteps, encoder_hidden_states
+                ).sample
+
+                loss = torch.nn.functional.mse_loss(
+                    model_pred.float(), target.float(), reduction="mean"
+                )
+
+                # Gather the losses across all processes for logging (if we use
+                # distributed training).
+                avg_loss = accelerator.gather(
+                    loss.repeat(train_config.train_batch_size)
+                ).mean()
+                train_loss += (
+                    avg_loss.item() / train_config.gradient_accumulation_steps
+                )
+
+                # Backpropagate.
+                accelerator.backward(loss)
+                if (
+                    accelerator.sync_gradients
+                    and train_config.max_grad_norm is not None
+                ):
+                    params_to_clip = lora_network.get_trainable_params()
+                    accelerator.clip_grad_norm_(
+                        params_to_clip, train_config.max_grad_norm
+                    )
+                optimizer.step()
+                lr_scheduler.step()
+                optimizer.zero_grad(set_to_none=True)
+
+            # Checks if the accelerator has performed an optimization step
+            # behind the scenes.
+            if accelerator.sync_gradients:
+                progress_bar.update(1)
+                global_step += 1
+                accelerator.log({"train_loss": train_loss}, step=global_step)
+                train_loss = 0.0
+
+                if (
+                    train_config.save_every_n_steps is not None
+                    and global_step % train_config.save_every_n_steps == 0
+                ):
+                    accelerator.wait_for_everyone()
+                    if accelerator.is_main_process:
+                        _save_checkpoint(
+                            idx=global_step,
+                            prefix="step",
+                            network=accelerator.unwrap_model(lora_network),
+                            save_dtype=weight_dtype,
+                            train_config=train_config,
+                            logger=logger,
+                        )
+
+            logs = {
+                "step_loss": loss.detach().item(),
+                "lr": lr_scheduler.get_last_lr()[0],
+            }
+            progress_bar.set_postfix(**logs)
+
+            if global_step >= train_config.max_train_steps:
+                break

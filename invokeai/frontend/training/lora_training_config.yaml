@@ -1,2 +1,14 @@
-dataset_name: lambdalabs/pokemon-blip-captions
+# General
 seed: 1
+gradient_accumulation_steps: 4
+mixed_precision: fp16
+xformers: True
+gradient_checkpointing: False
+max_train_steps: 100
+save_every_n_epochs: null
+save_every_n_steps: 5
+max_checkpoints: 3
+
+# Dataset
+dataset_name: lambdalabs/pokemon-blip-captions
+train_batch_size: 1
