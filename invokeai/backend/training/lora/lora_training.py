@@ -1,15 +1,18 @@
 import json
 import logging
+import os
+import random
 
 import datasets
 import diffusers
+import numpy as np
 import torch
 import transformers
 from accelerate import Accelerator
 from accelerate.logging import MultiProcessAdapter, get_logger
 from accelerate.utils import ProjectConfiguration, set_seed
 from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel
-from packaging import version
+from torchvision import transforms
 from transformers import CLIPTextModel, CLIPTokenizer
 
 import invokeai.backend.training.lora.networks.lora as kohya_lora_module
@@ -217,6 +220,134 @@ def _initialize_optimizer(
     )
 
 
+def _initialize_dataset(
+    train_config: LoraTrainingConfig,
+    accelerator: Accelerator,
+    tokenizer: CLIPTokenizer,
+) -> torch.utils.data.DataLoader:
+    # In distributed training, the load_dataset function guarantees that only
+    # one local process will download the dataset.
+    if train_config.dataset_name is not None:
+        # Download the dataset from the Hugging Face hub.
+        dataset = datasets.load_dataset(
+            train_config.dataset_name,
+            train_config.dataset_config_name,
+            cache_dir=train_config.hf_cache_dir,
+        )
+    elif train_config.dataset_dir is not None:
+        data_files = {}
+        data_files["train"] = os.path.join(train_config.dataset_dir, "**")
+        # See more about loading custom images at
+        # https://huggingface.co/docs/datasets/v2.4.0/en/image_load#imagefolder
+        dataset = datasets.load_dataset(
+            "imagefolder",
+            data_files=data_files,
+            cache_dir=train_config.hf_cache_dir,
+        )
+    else:
+        raise ValueError(
+            "At least one of 'dataset_name' or 'dataset_dir' must be set."
+        )
+
+    # Preprocessing the datasets.
+    # We need to tokenize inputs and targets.
+    column_names = dataset["train"].column_names
+
+    # Get the column names for input/target.
+    if train_config.dataset_image_column not in column_names:
+        raise ValueError(
+            f"The dataset_image_column='{train_config.dataset_image_column}' is"
+            f" not in the set of dataset column names: '{column_names}'."
+        )
+    if train_config.dataset_caption_column not in column_names:
+        raise ValueError(
+            f"The dataset_caption_column='{train_config.dataset_caption_column}'"
+            f" is not in the set of dataset column names: '{column_names}'."
+        )
+
+    # Preprocessing the datasets.
+    # We need to tokenize input captions and transform the images.
+    def tokenize_captions(examples, is_train=True):
+        captions = []
+        for caption in examples[train_config.dataset_caption_column]:
+            if isinstance(caption, str):
+                captions.append(caption)
+            elif isinstance(caption, (list, np.ndarray)):
+                # take a random caption if there are multiple
+                captions.append(
+                    random.choice(caption) if is_train else caption[0]
+                )
+            else:
+                raise ValueError(
+                    f"Caption column `{train_config.dataset_caption_column}`"
+                    " should contain either strings or lists of strings."
+                )
+        inputs = tokenizer(
+            captions,
+            max_length=tokenizer.model_max_length,
+            padding="max_length",
+            truncation=True,
+            return_tensors="pt",
+        )
+        return inputs.input_ids
+
+    # Preprocessing the datasets.
+    train_transforms = transforms.Compose(
+        [
+            transforms.Resize(
+                train_config.resolution,
+                interpolation=transforms.InterpolationMode.BILINEAR,
+            ),
+            (
+                transforms.CenterCrop(train_config.resolution)
+                if train_config.center_crop
+                else transforms.RandomCrop(train_config.resolution)
+            ),
+            (
+                transforms.RandomHorizontalFlip()
+                if train_config.random_flip
+                else transforms.Lambda(lambda x: x)
+            ),
+            transforms.ToTensor(),
+            transforms.Normalize([0.5], [0.5]),
+        ]
+    )
+
+    def preprocess_train(examples):
+        images = [
+            image.convert("RGB")
+            for image in examples[train_config.dataset_image_column]
+        ]
+        examples["pixel_values"] = [train_transforms(image) for image in images]
+        examples["input_ids"] = tokenize_captions(examples)
+        return examples
+
+    with accelerator.main_process_first():
+        # Set the training transforms
+        train_dataset = dataset["train"].with_transform(preprocess_train)
+
+    def collate_fn(examples):
+        pixel_values = torch.stack(
+            [example["pixel_values"] for example in examples]
+        )
+        pixel_values = pixel_values.to(
+            memory_format=torch.contiguous_format
+        ).float()
+        input_ids = torch.stack([example["input_ids"] for example in examples])
+        return {"pixel_values": pixel_values, "input_ids": input_ids}
+
+    # DataLoaders creation:
+    train_dataloader = torch.utils.data.DataLoader(
+        train_dataset,
+        shuffle=True,
+        collate_fn=collate_fn,
+        batch_size=train_config.train_batch_size,
+        num_workers=train_config.dataloader_num_workers,
+    )
+
+    return train_dataloader
+
+
 def run_lora_training(
     app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig
 ):
@@ -268,3 +399,10 @@ def run_lora_training(
     )
 
     optimizer = _initialize_optimizer(train_config, trainable_params)
+
+    data_loader = _initialize_dataset(train_config, accelerator, tokenizer)
+
+    x = train_features, train_labels = next(iter(data_loader))
+    logger.info(x.keys())
+    logger.info(x["pixel_values"].shape)
+    logger.info(x["input_ids"].shape)
