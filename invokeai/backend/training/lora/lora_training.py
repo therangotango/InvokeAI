@@ -356,7 +356,7 @@ def run_lora_training(
     logger = _initialize_logging(accelerator)
 
     # Set the accelerate seed.
-    if train_config.seed:
+    if train_config.seed is not None:
         set_seed(train_config.seed)
 
     # Log the accelerator configuration from every process to help with

@@ -1,1 +1,2 @@
-dataset_name: lambdalabs/pokemon-blip-captions 
+dataset_name: lambdalabs/pokemon-blip-captions
+seed: 1
