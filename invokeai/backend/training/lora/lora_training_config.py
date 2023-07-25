@@ -30,6 +30,9 @@ class LoraTrainingConfig(BaseModel):
     # 'configs/models.yaml'.
     model: str = "sd-1/main/stable-diffusion-v1-5"
 
+    # A seed for reproducible training.
+    seed: typing.Optional[int] = None
+
     # The number of gradient steps to accumulate before each weight update. This
     # value is passed to Hugging Face Accelerate. This is an alternative to
     # increasing the batch size when training with limited VRAM.
