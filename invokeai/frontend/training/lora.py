@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import yaml
@@ -25,10 +26,10 @@ def parse_args():
     )
     parser.add_argument(
         "--output_dir",
-        type=Path,
+        type=str,
         # TODO(ryand): Decide on a training directory structure and update for
         # consistency with TI training.
-        default=config.root / "training/lora/output",
+        default=os.path.join(config.root, "training/lora/output"),
         help=(
             "The output directory where the training outputs (model"
             " checkpoints, logs, intermediate predictions) will be written."

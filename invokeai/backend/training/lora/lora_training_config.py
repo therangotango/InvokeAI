@@ -13,7 +13,7 @@ class LoraTrainingConfig(BaseModel):
 
     # The output directory where the training outputs (model checkpoints, logs,
     # intermediate predictions) will be written.
-    output_dir: Path
+    output_dir: str
 
     # The integration to report results and logs to ('all', 'tensorboard',
     # 'wandb', or 'comet_ml'). This value is passed to Hugging Face Accelerate.

@@ -39,7 +39,7 @@ def _initialize_accelerator(train_config: LoraTrainingConfig) -> Accelerator:
     """
     accelerator_project_config = ProjectConfiguration(
         project_dir=train_config.output_dir,
-        logging_dir=train_config.output_dir / "logs",
+        logging_dir=os.path.join(train_config.output_dir, "logs"),
     )
     return Accelerator(
         project_config=accelerator_project_config,
@@ -434,6 +434,10 @@ def run_lora_training(
         data_loader,
         lr_scheduler,
     )
+
+    # Initialize the trackers we use, and store the training configuration.
+    if accelerator.is_main_process:
+        accelerator.init_trackers(__name__, config=train_config.dict())
 
     x = train_features, train_labels = next(iter(data_loader))
     logger.info(x.keys())
