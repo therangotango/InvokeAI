@@ -439,6 +439,30 @@ def run_lora_training(
     if accelerator.is_main_process:
         accelerator.init_trackers(__name__, config=train_config.dict())
 
+    # Train!
+    total_batch_size = (
+        train_config.train_batch_size
+        * accelerator.num_processes
+        * train_config.gradient_accumulation_steps
+    )
+    logger.info("***** Running training *****")
+    logger.info(f"  Num examples = {len(data_loader)}")
+    # logger.info(f"  Num Epochs = {args.num_train_epochs}")
+    logger.info(
+        "  Instantaneous batch size per device ="
+        f" {train_config.train_batch_size}"
+    )
+    logger.info(
+        "  Gradient accumulation steps ="
+        f" {train_config.gradient_accumulation_steps}"
+    )
+    logger.info(f"  Parallel processes = {accelerator.num_processes}")
+    logger.info(
+        "  Total train batch size (w. parallel, distributed & accumulation) ="
+        f" {total_batch_size}"
+    )
+    logger.info(f"  Total optimization steps = {train_config.max_train_steps}")
+
     x = train_features, train_labels = next(iter(data_loader))
     logger.info(x.keys())
     logger.info(x["pixel_values"].shape)
