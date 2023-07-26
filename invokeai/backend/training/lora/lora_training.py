@@ -14,7 +14,12 @@ import transformers
 from accelerate import Accelerator
 from accelerate.logging import MultiProcessAdapter, get_logger
 from accelerate.utils import ProjectConfiguration, set_seed
-from diffusers import AutoencoderKL, DDPMScheduler, UNet2DConditionModel
+from diffusers import (
+    AutoencoderKL,
+    DDPMScheduler,
+    UNet2DConditionModel,
+    StableDiffusionPipeline,
+)
 from diffusers.optimization import get_scheduler
 from torchvision import transforms
 from tqdm import tqdm
@@ -439,10 +444,91 @@ def _save_checkpoint(
     logger.info(f"Saved state to {save_path}")
 
 
+def _generate_validation_images(
+    epoch: int,
+    out_dir: str,
+    accelerator: Accelerator,
+    vae: AutoencoderKL,
+    text_encoder: CLIPTextModel,
+    tokenizer: CLIPTokenizer,
+    noise_scheduler: DDPMScheduler,
+    unet: KohyaUNet2DConditionModel,
+    train_config: LoraTrainingConfig,
+    logger: logging.Logger,
+):
+    logger.info("Generating validation images.")
+
+    # HACK(ryand): The KohyaUNet2DConditionModel model is based on an old
+    # version of the diffusers.UNet2DConditionModel. We monkeypatch its `config`
+    # fields to give it the entries expected by `StableDiffusionPipeline`.
+    unet.config.in_channels = unet.in_channels
+    unet.config.sample_size = unet.sample_size
+
+    # Create pipeline.
+    pipeline = StableDiffusionPipeline(
+        vae=vae,
+        text_encoder=text_encoder,
+        tokenizer=tokenizer,
+        unet=unet,
+        scheduler=noise_scheduler,
+        safety_checker=None,
+        feature_extractor=None,
+        # TODO(ryand): Add safety checker support.
+        requires_safety_checker=False,
+    )
+    pipeline = pipeline.to(accelerator.device)
+    pipeline.set_progress_bar_config(disable=True)
+
+    # Run inference.
+    with torch.no_grad():
+        for prompt_idx, prompt in enumerate(train_config.validation_prompts):
+            generator = torch.Generator(device=accelerator.device)
+            if train_config.seed is not None:
+                generator = generator.manual_seed(train_config.seed)
+
+            images = []
+            for _ in range(train_config.num_validation_images_per_prompt):
+                with accelerator.autocast():
+                    images.append(
+                        pipeline(
+                            prompt,
+                            num_inference_steps=30,
+                            generator=generator,
+                        ).images[0]
+                    )
+
+            # Save images to disk.
+            validation_dir = os.path.join(
+                out_dir,
+                "validation",
+                f"epoch_{epoch:0>8}",
+                f"prompt_{prompt_idx:0>4}",
+            )
+            os.makedirs(validation_dir)
+            for image_idx, image in enumerate(images):
+                image.save(os.path.join(validation_dir, f"{image_idx:0>4}.jpg"))
+
+            # Log images to trackers. Currently, only tensorboard is supported.
+            for tracker in accelerator.trackers:
+                if tracker.name == "tensorboard":
+                    np_images = np.stack([np.asarray(img) for img in images])
+                    tracker.writer.add_images(
+                        f"validation (prompt {prompt_idx})",
+                        np_images,
+                        epoch,
+                        dataformats="NHWC",
+                    )
+
+    del pipeline
+    torch.cuda.empty_cache()
+
+
 def run_lora_training(
     app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig
 ):
+    # Create a timestamped directory for all outputs.
     out_dir = os.path.join(train_config.base_output_dir, f"{time.time()}")
+    os.makedirs(out_dir)
 
     accelerator = _initialize_accelerator(out_dir, train_config)
     logger = _initialize_logging(accelerator)
@@ -459,6 +545,11 @@ def run_lora_training(
     logger.info(
         f"Configuration:\n{json.dumps(train_config.dict(), indent=2, default=str)}"
     )
+    logger.info(f"Output dir: '{out_dir}'")
+
+    # Write the configuration to disk.
+    with open(os.path.join(out_dir, "config.json"), "w") as f:
+        json.dump(train_config.dict(), f, indent=2, default=str)
 
     weight_dtype = _get_weight_type(accelerator)
 
@@ -566,7 +657,7 @@ def run_lora_training(
 
     # Initialize the trackers we use, and store the training configuration.
     if accelerator.is_main_process:
-        accelerator.init_trackers("lora_training", config=train_config.dict())
+        accelerator.init_trackers("lora_training")
 
     # Train!
     total_batch_size = (
@@ -609,6 +700,8 @@ def run_lora_training(
 
         train_loss = 0.0
         for step, batch in enumerate(dataloader):
+            if (step + 1) % 5 == 0:
+                break
             with accelerator.accumulate(lora_network):
                 # Convert images to latent space.
                 with torch.no_grad():
@@ -729,13 +822,13 @@ def run_lora_training(
             if global_step >= train_config.max_train_steps:
                 break
 
-        accelerator.wait_for_everyone()
-
+        # Save a checkpoint.
         if (
             train_config.save_every_n_epochs is not None
             and (epoch + 1) % train_config.save_every_n_epochs == 0
         ):
             if accelerator.is_main_process:
+                accelerator.wait_for_everyone()
                 _save_checkpoint(
                     idx=epoch + 1,
                     prefix="epoch",
@@ -745,3 +838,94 @@ def run_lora_training(
                     train_config=train_config,
                     logger=logger,
                 )
+
+        # Generate validation images.
+        if (
+            len(train_config.validation_prompts) > 0
+            and (epoch + 1) % train_config.validate_every_n_epochs == 0
+        ):
+            if accelerator.is_main_process:
+                _generate_validation_images(
+                    epoch=epoch + 1,
+                    out_dir=out_dir,
+                    accelerator=accelerator,
+                    vae=vae,
+                    text_encoder=text_encoder,
+                    tokenizer=tokenizer,
+                    noise_scheduler=noise_scheduler,
+                    unet=unet,
+                    train_config=train_config,
+                    logger=logger,
+                )
+
+    # End `for epoch in range(first_epoch, num_train_epochs):`
+
+    #     # Save the lora layers
+    #     accelerator.wait_for_everyone()
+    #     if accelerator.is_main_process:
+    #         unet = unet.to(torch.float32)
+    #         unet.save_attn_procs(args.output_dir)
+
+    #         if args.push_to_hub:
+    #             save_model_card(
+    #                 repo_id,
+    #                 images=images,
+    #                 base_model=args.pretrained_model_name_or_path,
+    #                 dataset_name=args.dataset_name,
+    #                 repo_folder=args.output_dir,
+    #             )
+    #             upload_folder(
+    #                 repo_id=repo_id,
+    #                 folder_path=args.output_dir,
+    #                 commit_message="End of training",
+    #                 ignore_patterns=["step_*", "epoch_*"],
+    #             )
+
+    # # Final inference
+    # # Load previous pipeline
+    # pipeline = DiffusionPipeline.from_pretrained(
+    #     args.pretrained_model_name_or_path,
+    #     revision=args.revision,
+    #     torch_dtype=weight_dtype,
+    # )
+    # pipeline = pipeline.to(accelerator.device)
+
+    # # load attention processors
+    # pipeline.unet.load_attn_procs(args.output_dir)
+
+    # # run inference
+    # generator = torch.Generator(device=accelerator.device)
+    # if args.seed is not None:
+    #     generator = generator.manual_seed(args.seed)
+    # images = []
+    # for _ in range(args.num_validation_images):
+    #     images.append(
+    #         pipeline(
+    #             args.validation_prompt,
+    #             num_inference_steps=30,
+    #             generator=generator,
+    #         ).images[0]
+    #     )
+
+    # if accelerator.is_main_process:
+    #     for tracker in accelerator.trackers:
+    #         if len(images) != 0:
+    #             if tracker.name == "tensorboard":
+    #                 np_images = np.stack([np.asarray(img) for img in images])
+    #                 tracker.writer.add_images(
+    #                     "test", np_images, epoch, dataformats="NHWC"
+    #                 )
+    #             if tracker.name == "wandb":
+    #                 tracker.log(
+    #                     {
+    #                         "test": [
+    #                             wandb.Image(
+    #                                 image,
+    #                                 caption=f"{i}: {args.validation_prompt}",
+    #                             )
+    #                             for i, image in enumerate(images)
+    #                         ]
+    #                     }
+    #                 )
+
+    # accelerator.end_training()

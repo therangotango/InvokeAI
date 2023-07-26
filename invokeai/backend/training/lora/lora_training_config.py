@@ -87,6 +87,18 @@ class LoraTrainingConfig(BaseModel):
     # Max gradient norm for clipping. Set to None for no clipping.
     max_grad_norm: typing.Optional[float] = 1.0
 
+    # A list of prompts that will be used to generate images throughout training
+    # for the purpose of tracking progress.
+    # See also 'validate_every_n_epochs'.
+    validation_prompts: list[str] = []
+
+    # The number of validation images to generate for each prompt in
+    # 'validation_prompts'.
+    num_validation_images_per_prompt: int = 4
+
+    # The interval (in epochs) at which validation images will be generated.
+    validate_every_n_epochs: int = 1
+
     #####################
     # Optimizer Configs
     #####################
