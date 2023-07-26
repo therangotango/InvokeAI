@@ -1,5 +1,4 @@
 import typing
-from pathlib import Path
 
 from pydantic import BaseModel
 
@@ -22,6 +21,11 @@ class LoraTrainingConfig(BaseModel):
     report_to: typing.Optional[
         typing.Literal["all", "tensorboard", "wandb", "comet_ml"]
     ] = "tensorboard"
+
+    # The file type to save the model as.
+    # Note that "ckpt" and "pt" are alternative file extensions for the same
+    # file format.
+    save_model_as: typing.Literal["ckpt", "pt", "safetensors"] = "safetensors"
 
     ##################
     # General Configs

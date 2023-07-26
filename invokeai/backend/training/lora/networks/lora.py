@@ -1343,16 +1343,10 @@ class LoRANetwork(torch.nn.Module):
 
         if os.path.splitext(file)[1] == ".safetensors":
             from safetensors.torch import save_file
-            from library import train_util
 
-            # Precalculate model hashes to save time on indexing
-            if metadata is None:
-                metadata = {}
-            model_hash, legacy_hash = (
-                train_util.precalculate_safetensors_hashes(state_dict, metadata)
-            )
-            metadata["sshs_model_hash"] = model_hash
-            metadata["sshs_legacy_hash"] = legacy_hash
+            # TODO(ryand): Pre-calculate the safetensors model hash to save time
+            # on indexing the model later. See this implementation for details:
+            # https://github.com/bmaltais/kohya_ss/blob/397bf51a8cd36104e52055358e4ffd066c5858df/networks/lora.py#L1092
 
             save_file(state_dict, file, metadata)
         else:
