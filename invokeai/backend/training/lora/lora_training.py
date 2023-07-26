@@ -728,3 +728,20 @@ def run_lora_training(
 
             if global_step >= train_config.max_train_steps:
                 break
+
+        accelerator.wait_for_everyone()
+
+        if (
+            train_config.save_every_n_epochs is not None
+            and (epoch + 1) % train_config.save_every_n_epochs == 0
+        ):
+            if accelerator.is_main_process:
+                _save_checkpoint(
+                    idx=epoch + 1,
+                    prefix="epoch",
+                    out_dir=out_dir,
+                    network=accelerator.unwrap_model(lora_network),
+                    save_dtype=weight_dtype,
+                    train_config=train_config,
+                    logger=logger,
+                )
