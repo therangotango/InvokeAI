@@ -499,6 +499,13 @@ def run_lora_training(
         unet.train()
         text_encoder.train()
 
+        # This fix is from:
+        # https://github.com/kohya-ss/sd-scripts/commit/e6a8c9d269b4952a6944dfe0e78a1f89bd036971
+        # Without it, training fails.
+        # TODO(ryand): Investigate and document more clearly why this is
+        # necessary.
+        text_encoder.text_model.embeddings.requires_grad_(True)
+
     trainable_params = lora_network.prepare_optimizer_params(
         text_encoder_lr=None,
         unet_lr=None,
