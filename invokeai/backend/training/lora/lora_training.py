@@ -4,6 +4,7 @@ import math
 import os
 import random
 import shutil
+import time
 
 import datasets
 import diffusers
@@ -32,18 +33,21 @@ from invokeai.backend.training.lora.lora_training_config import (
 from invokeai.backend.training.lora.networks.lora import LoRANetwork
 
 
-def _initialize_accelerator(train_config: LoraTrainingConfig) -> Accelerator:
+def _initialize_accelerator(
+    out_dir: str, train_config: LoraTrainingConfig
+) -> Accelerator:
     """Configure Hugging Face accelerate and return an Accelerator.
 
     Args:
+        out_dir (str): The output directory where results will be written.
         train_config (LoraTrainingConfig): LoRA training configuration.
 
     Returns:
         Accelerator
     """
     accelerator_project_config = ProjectConfiguration(
-        project_dir=train_config.output_dir,
-        logging_dir=os.path.join(train_config.output_dir, "logs"),
+        project_dir=out_dir,
+        logging_dir=os.path.join(out_dir, "logs"),
     )
     return Accelerator(
         project_config=accelerator_project_config,
@@ -379,6 +383,7 @@ def _initialize_dataset(
 def _save_checkpoint(
     idx: int,
     prefix: str,
+    out_dir: str,
     network: LoRANetwork,
     save_dtype: torch.dtype,
     train_config: LoraTrainingConfig,
@@ -399,7 +404,7 @@ def _save_checkpoint(
     # Before saving a checkpoint, check if this save would put us over the
     # max_checkpoints limit.
     if train_config.max_checkpoints is not None:
-        checkpoints = os.listdir(train_config.output_dir)
+        checkpoints = os.listdir(out_dir)
         checkpoints = [d for d in checkpoints if d.startswith(full_prefix)]
         checkpoints = sorted(
             checkpoints,
@@ -419,7 +424,7 @@ def _save_checkpoint(
 
             for checkpoint_to_remove in checkpoints_to_remove:
                 checkpoint_to_remove = os.path.join(
-                    train_config.output_dir, checkpoint_to_remove
+                    out_dir, checkpoint_to_remove
                 )
                 if os.path.isfile(checkpoint_to_remove):
                     # Delete checkpoint file.
@@ -428,7 +433,7 @@ def _save_checkpoint(
                     # Delete checkpoint directory.
                     shutil.rmtree(checkpoint_to_remove)
 
-    save_path = os.path.join(train_config.output_dir, f"{full_prefix}{idx:0>8}")
+    save_path = os.path.join(out_dir, f"{full_prefix}{idx:0>8}")
     network.save_weights(save_path, save_dtype, None)
     # accelerator.save_state(save_path)
     logger.info(f"Saved state to {save_path}")
@@ -437,7 +442,9 @@ def _save_checkpoint(
 def run_lora_training(
     app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig
 ):
-    accelerator = _initialize_accelerator(train_config)
+    out_dir = os.path.join(train_config.base_output_dir, f"{time.time()}")
+
+    accelerator = _initialize_accelerator(out_dir, train_config)
     logger = _initialize_logging(accelerator)
 
     # Set the accelerate seed.
@@ -552,7 +559,7 @@ def run_lora_training(
 
     # Initialize the trackers we use, and store the training configuration.
     if accelerator.is_main_process:
-        accelerator.init_trackers(__name__, config=train_config.dict())
+        accelerator.init_trackers("lora_training", config=train_config.dict())
 
     # Train!
     total_batch_size = (
@@ -699,6 +706,7 @@ def run_lora_training(
                         _save_checkpoint(
                             idx=global_step,
                             prefix="step",
+                            out_dir=out_dir,
                             network=accelerator.unwrap_model(lora_network),
                             save_dtype=weight_dtype,
                             train_config=train_config,

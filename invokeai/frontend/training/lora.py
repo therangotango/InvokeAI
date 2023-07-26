@@ -25,7 +25,7 @@ def parse_args():
         ),
     )
     parser.add_argument(
-        "--output_dir",
+        "--base_output_dir",
         type=str,
         # TODO(ryand): Decide on a training directory structure and update for
         # consistency with TI training.
@@ -49,7 +49,7 @@ def main():
         cfg = yaml.safe_load(f)
 
     # Override 'output_dir' config.
-    cfg["output_dir"] = args.output_dir
+    cfg["base_output_dir"] = args.base_output_dir
 
     train_config = LoraTrainingConfig(**cfg)
     run_lora_training(app_config, train_config)
