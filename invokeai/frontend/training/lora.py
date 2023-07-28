@@ -4,7 +4,9 @@ from pathlib import Path
 import yaml
 
 from invokeai.app.services.config import InvokeAIAppConfig, PagingArgumentParser
-from invokeai.backend.training.lora.lora_training import run_lora_training
+from invokeai.backend.training.lora.lora_training_diffusers import (
+    run_lora_training,
+)
 from invokeai.backend.training.lora.lora_training_config import (
     LoraTrainingConfig,
 )

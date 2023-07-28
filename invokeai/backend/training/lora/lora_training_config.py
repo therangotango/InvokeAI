@@ -53,6 +53,11 @@ class LoraTrainingConfig(BaseModel):
     # If true, use xformers for more efficient attention blocks.
     xformers: bool = False
 
+    # Whether to allow TF32 on Ampere GPUs. Can be used to speed up training.
+    # For more information, see
+    # https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices
+    allow_tf32: bool = False
+
     # Whether or not to use gradient checkpointing to save memory at the expense
     # of a slower backward pass.
     gradient_checkpointing: bool = False
@@ -103,12 +108,21 @@ class LoraTrainingConfig(BaseModel):
     # The interval (in epochs) at which validation images will be generated.
     validate_every_n_epochs: int = 1
 
+    # Whether the text_encoder should be trained in addition to the unet.
+    train_text_encoder: bool = True
+
+    # The dimension of the LoRA update matrices.
+    lora_rank: int = 4
+
     #####################
     # Optimizer Configs
     #####################
 
     # Initial learning rate (after the potential warmup period) to use.
     learning_rate: float = 1e-4
+
+    # If true, scale the learning rate by the effective batch size.
+    scale_lr: bool = False
 
     # Adam optimizer params.
     adam_beta1: float = 0.9
