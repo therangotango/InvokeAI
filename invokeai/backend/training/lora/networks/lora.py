@@ -10,14 +10,9 @@ import os
 from typing import Dict, List, Optional, Tuple, Type, Union
 from diffusers import AutoencoderKL
 from transformers import CLIPTextModel
-import numpy as np
 import torch
 import re
 
-
-RE_UPDOWN = re.compile(
-    r"(up|down)_blocks_(\d+)_(resnets|upsamplers|downsamplers|attentions)_(\d+)_"
-)
 
 RE_UPDOWN = re.compile(
     r"(up|down)_blocks_(\d+)_(resnets|upsamplers|downsamplers|attentions)_(\d+)_"
@@ -51,11 +46,6 @@ class LoRAModule(torch.nn.Module):
             in_dim = org_module.in_features
             out_dim = org_module.out_features
 
-        # if limit_rank:
-        #   self.lora_dim = min(lora_dim, in_dim, out_dim)
-        #   if self.lora_dim != lora_dim:
-        #     print(f"{lora_name} dim (rank) is changed to: {self.lora_dim}")
-        # else:
         self.lora_dim = lora_dim
 
         if org_module.__class__.__name__ == "Conv2d":
@@ -80,12 +70,13 @@ class LoRAModule(torch.nn.Module):
         self.scale = alpha / self.lora_dim
         self.register_buffer("alpha", torch.tensor(alpha))  # 定数として扱える
 
-        # same as microsoft's
+        # This initialization is based on Microsoft's implementation:
+        # https://github.com/microsoft/LoRA/blob/998cfe4d351f4d6b4a47f0921dec2397aa0b9dfe/loralib/layers.py#L123
         torch.nn.init.kaiming_uniform_(self.lora_down.weight, a=math.sqrt(5))
         torch.nn.init.zeros_(self.lora_up.weight)
 
         self.multiplier = multiplier
-        self.org_module = org_module  # remove in applying
+        self.org_module = org_module
         self.dropout = dropout
         self.rank_dropout = rank_dropout
         self.module_dropout = module_dropout
@@ -132,314 +123,6 @@ class LoRAModule(torch.nn.Module):
         lx = self.lora_up(lx)
 
         return org_forwarded + lx * self.multiplier * scale
-
-
-class LoRAInfModule(LoRAModule):
-    def __init__(
-        self,
-        lora_name,
-        org_module: torch.nn.Module,
-        multiplier=1.0,
-        lora_dim=4,
-        alpha=1,
-        **kwargs,
-    ):
-        # no dropout for inference
-        super().__init__(lora_name, org_module, multiplier, lora_dim, alpha)
-
-        self.org_module_ref = [org_module]  # 後から参照できるように
-        self.enabled = True
-
-        # check regional or not by lora_name
-        self.text_encoder = False
-        if lora_name.startswith("lora_te_"):
-            self.regional = False
-            self.use_sub_prompt = True
-            self.text_encoder = True
-        elif "attn2_to_k" in lora_name or "attn2_to_v" in lora_name:
-            self.regional = False
-            self.use_sub_prompt = True
-        elif "time_emb" in lora_name:
-            self.regional = False
-            self.use_sub_prompt = False
-        else:
-            self.regional = True
-            self.use_sub_prompt = False
-
-        self.network: LoRANetwork = None
-
-    def set_network(self, network):
-        self.network = network
-
-    # freezeしてマージする
-    def merge_to(self, sd, dtype, device):
-        # get up/down weight
-        up_weight = sd["lora_up.weight"].to(torch.float).to(device)
-        down_weight = sd["lora_down.weight"].to(torch.float).to(device)
-
-        # extract weight from org_module
-        org_sd = self.org_module.state_dict()
-        weight = org_sd["weight"].to(torch.float)
-
-        # merge weight
-        if len(weight.size()) == 2:
-            # linear
-            weight = (
-                weight
-                + self.multiplier * (up_weight @ down_weight) * self.scale
-            )
-        elif down_weight.size()[2:4] == (1, 1):
-            # conv2d 1x1
-            weight = (
-                weight
-                + self.multiplier
-                * (
-                    up_weight.squeeze(3).squeeze(2)
-                    @ down_weight.squeeze(3).squeeze(2)
-                )
-                .unsqueeze(2)
-                .unsqueeze(3)
-                * self.scale
-            )
-        else:
-            # conv2d 3x3
-            conved = torch.nn.functional.conv2d(
-                down_weight.permute(1, 0, 2, 3), up_weight
-            ).permute(1, 0, 2, 3)
-            # print(conved.size(), weight.size(), module.stride, module.padding)
-            weight = weight + self.multiplier * conved * self.scale
-
-        # set weight to org_module
-        org_sd["weight"] = weight.to(dtype)
-        self.org_module.load_state_dict(org_sd)
-
-    # 復元できるマージのため、このモジュールのweightを返す
-    def get_weight(self, multiplier=None):
-        if multiplier is None:
-            multiplier = self.multiplier
-
-        # get up/down weight from module
-        up_weight = self.lora_up.weight.to(torch.float)
-        down_weight = self.lora_down.weight.to(torch.float)
-
-        # pre-calculated weight
-        if len(down_weight.size()) == 2:
-            # linear
-            weight = self.multiplier * (up_weight @ down_weight) * self.scale
-        elif down_weight.size()[2:4] == (1, 1):
-            # conv2d 1x1
-            weight = (
-                self.multiplier
-                * (
-                    up_weight.squeeze(3).squeeze(2)
-                    @ down_weight.squeeze(3).squeeze(2)
-                )
-                .unsqueeze(2)
-                .unsqueeze(3)
-                * self.scale
-            )
-        else:
-            # conv2d 3x3
-            conved = torch.nn.functional.conv2d(
-                down_weight.permute(1, 0, 2, 3), up_weight
-            ).permute(1, 0, 2, 3)
-            weight = self.multiplier * conved * self.scale
-
-        return weight
-
-    def set_region(self, region):
-        self.region = region
-        self.region_mask = None
-
-    def default_forward(self, x):
-        # print("default_forward", self.lora_name, x.size())
-        return (
-            self.org_forward(x)
-            + self.lora_up(self.lora_down(x)) * self.multiplier * self.scale
-        )
-
-    def forward(self, x):
-        if not self.enabled:
-            return self.org_forward(x)
-
-        if self.network is None or self.network.sub_prompt_index is None:
-            return self.default_forward(x)
-        if not self.regional and not self.use_sub_prompt:
-            return self.default_forward(x)
-
-        if self.regional:
-            return self.regional_forward(x)
-        else:
-            return self.sub_prompt_forward(x)
-
-    def get_mask_for_x(self, x):
-        # calculate size from shape of x
-        if len(x.size()) == 4:
-            h, w = x.size()[2:4]
-            area = h * w
-        else:
-            area = x.size()[1]
-
-        mask = self.network.mask_dic[area]
-        if mask is None:
-            raise ValueError(f"mask is None for resolution {area}")
-        if len(x.size()) != 4:
-            mask = torch.reshape(mask, (1, -1, 1))
-        return mask
-
-    def regional_forward(self, x):
-        if "attn2_to_out" in self.lora_name:
-            return self.to_out_forward(x)
-
-        if self.network.mask_dic is None:  # sub_prompt_index >= 3
-            return self.default_forward(x)
-
-        # apply mask for LoRA result
-        lx = self.lora_up(self.lora_down(x)) * self.multiplier * self.scale
-        mask = self.get_mask_for_x(lx)
-        # print("regional", self.lora_name, self.network.sub_prompt_index, lx.size(), mask.size())
-        lx = lx * mask
-
-        x = self.org_forward(x)
-        x = x + lx
-
-        if "attn2_to_q" in self.lora_name and self.network.is_last_network:
-            x = self.postp_to_q(x)
-
-        return x
-
-    def postp_to_q(self, x):
-        # repeat x to num_sub_prompts
-        has_real_uncond = x.size()[0] // self.network.batch_size == 3
-        qc = self.network.batch_size  # uncond
-        qc += self.network.batch_size * self.network.num_sub_prompts  # cond
-        if has_real_uncond:
-            qc += self.network.batch_size  # real_uncond
-
-        query = torch.zeros(
-            (qc, x.size()[1], x.size()[2]), device=x.device, dtype=x.dtype
-        )
-        query[: self.network.batch_size] = x[: self.network.batch_size]
-
-        for i in range(self.network.batch_size):
-            qi = self.network.batch_size + i * self.network.num_sub_prompts
-            query[qi : qi + self.network.num_sub_prompts] = x[
-                self.network.batch_size + i
-            ]
-
-        if has_real_uncond:
-            query[-self.network.batch_size :] = x[-self.network.batch_size :]
-
-        # print("postp_to_q", self.lora_name, x.size(), query.size(), self.network.num_sub_prompts)
-        return query
-
-    def sub_prompt_forward(self, x):
-        if (
-            x.size()[0] == self.network.batch_size
-        ):  # if uncond in text_encoder, do not apply LoRA
-            return self.org_forward(x)
-
-        emb_idx = self.network.sub_prompt_index
-        if not self.text_encoder:
-            emb_idx += self.network.batch_size
-
-        # apply sub prompt of X
-        lx = x[emb_idx :: self.network.num_sub_prompts]
-        lx = self.lora_up(self.lora_down(lx)) * self.multiplier * self.scale
-
-        # print("sub_prompt_forward", self.lora_name, x.size(), lx.size(), emb_idx)
-
-        x = self.org_forward(x)
-        x[emb_idx :: self.network.num_sub_prompts] += lx
-
-        return x
-
-    def to_out_forward(self, x):
-        # print("to_out_forward", self.lora_name, x.size(), self.network.is_last_network)
-
-        if self.network.is_last_network:
-            masks = [None] * self.network.num_sub_prompts
-            self.network.shared[self.lora_name] = (None, masks)
-        else:
-            lx, masks = self.network.shared[self.lora_name]
-
-        # call own LoRA
-        x1 = x[
-            self.network.batch_size
-            + self.network.sub_prompt_index :: self.network.num_sub_prompts
-        ]
-        lx1 = self.lora_up(self.lora_down(x1)) * self.multiplier * self.scale
-
-        if self.network.is_last_network:
-            lx = torch.zeros(
-                (
-                    self.network.num_sub_prompts * self.network.batch_size,
-                    *lx1.size()[1:],
-                ),
-                device=lx1.device,
-                dtype=lx1.dtype,
-            )
-            self.network.shared[self.lora_name] = (lx, masks)
-
-        # print("to_out_forward", lx.size(), lx1.size(), self.network.sub_prompt_index, self.network.num_sub_prompts)
-        lx[self.network.sub_prompt_index :: self.network.num_sub_prompts] += lx1
-        masks[self.network.sub_prompt_index] = self.get_mask_for_x(lx1)
-
-        # if not last network, return x and masks
-        x = self.org_forward(x)
-        if not self.network.is_last_network:
-            return x
-
-        lx, masks = self.network.shared.pop(self.lora_name)
-
-        # if last network, combine separated x with mask weighted sum
-        has_real_uncond = (
-            x.size()[0] // self.network.batch_size
-            == self.network.num_sub_prompts + 2
-        )
-
-        out = torch.zeros(
-            (
-                self.network.batch_size * (3 if has_real_uncond else 2),
-                *x.size()[1:],
-            ),
-            device=x.device,
-            dtype=x.dtype,
-        )
-        out[: self.network.batch_size] = x[: self.network.batch_size]  # uncond
-        if has_real_uncond:
-            out[-self.network.batch_size :] = x[
-                -self.network.batch_size :
-            ]  # real_uncond
-
-        # print("to_out_forward", self.lora_name, self.network.sub_prompt_index, self.network.num_sub_prompts)
-        # for i in range(len(masks)):
-        #     if masks[i] is None:
-        #         masks[i] = torch.zeros_like(masks[-1])
-
-        mask = torch.cat(masks)
-        mask_sum = torch.sum(mask, dim=0) + 1e-4
-        for i in range(self.network.batch_size):
-            # 1枚の画像ごとに処理する
-            lx1 = lx[
-                i
-                * self.network.num_sub_prompts : (i + 1)
-                * self.network.num_sub_prompts
-            ]
-            lx1 = lx1 * mask
-            lx1 = torch.sum(lx1, dim=0)
-
-            xi = self.network.batch_size + i * self.network.num_sub_prompts
-            x1 = x[xi : xi + self.network.num_sub_prompts]
-            x1 = x1 * mask
-            x1 = torch.sum(x1, dim=0)
-            x1 = x1 / mask_sum
-
-            x1 = x1 + lx1
-            out[self.network.batch_size + i] = x1
-
-        # print("to_out_forward", x.size(), out.size(), has_real_uncond)
-        return out
 
 
 def parse_block_lr_kwargs(nw_kwargs):
@@ -862,68 +545,6 @@ def get_block_index(lora_name: str) -> int:
         block_idx = LoRANetwork.NUM_OF_BLOCKS  # idx=12
 
     return block_idx
-
-
-# Create network from weights for inference, weights are not loaded here (because can be merged)
-def create_network_from_weights(
-    multiplier,
-    file,
-    vae,
-    text_encoder,
-    unet,
-    weights_sd=None,
-    for_inference=False,
-    **kwargs,
-):
-    if weights_sd is None:
-        if os.path.splitext(file)[1] == ".safetensors":
-            from safetensors.torch import load_file, safe_open
-
-            weights_sd = load_file(file)
-        else:
-            weights_sd = torch.load(file, map_location="cpu")
-
-    # get dim/alpha mapping
-    modules_dim = {}
-    modules_alpha = {}
-    for key, value in weights_sd.items():
-        if "." not in key:
-            continue
-
-        lora_name = key.split(".")[0]
-        if "alpha" in key:
-            modules_alpha[lora_name] = value
-        elif "lora_down" in key:
-            dim = value.size()[0]
-            modules_dim[lora_name] = dim
-            # print(lora_name, value.size(), dim)
-
-    # support old LoRA without alpha
-    for key in modules_dim.keys():
-        if key not in modules_alpha:
-            modules_alpha[key] = modules_dim[key]
-
-    module_class = LoRAInfModule if for_inference else LoRAModule
-
-    network = LoRANetwork(
-        text_encoder,
-        unet,
-        multiplier=multiplier,
-        modules_dim=modules_dim,
-        modules_alpha=modules_alpha,
-        module_class=module_class,
-    )
-
-    # block lr
-    down_lr_weight, mid_lr_weight, up_lr_weight = parse_block_lr_kwargs(kwargs)
-    if (
-        up_lr_weight is not None
-        or mid_lr_weight is not None
-        or down_lr_weight is not None
-    ):
-        network.set_block_lr_weight(up_lr_weight, mid_lr_weight, down_lr_weight)
-
-    return network, weights_sd
 
 
 class LoRANetwork(torch.nn.Module):
@@ -1404,45 +1025,6 @@ class LoRANetwork(torch.nn.Module):
             w = (w + 1) // 2
 
         self.mask_dic = mask_dic
-
-    def backup_weights(self):
-        # 重みのバックアップを行う
-        loras: List[LoRAInfModule] = self.text_encoder_loras + self.unet_loras
-        for lora in loras:
-            org_module = lora.org_module_ref[0]
-            if not hasattr(org_module, "_lora_org_weight"):
-                sd = org_module.state_dict()
-                org_module._lora_org_weight = sd["weight"].detach().clone()
-                org_module._lora_restored = True
-
-    def restore_weights(self):
-        # 重みのリストアを行う
-        loras: List[LoRAInfModule] = self.text_encoder_loras + self.unet_loras
-        for lora in loras:
-            org_module = lora.org_module_ref[0]
-            if not org_module._lora_restored:
-                sd = org_module.state_dict()
-                sd["weight"] = org_module._lora_org_weight
-                org_module.load_state_dict(sd)
-                org_module._lora_restored = True
-
-    def pre_calculation(self):
-        # 事前計算を行う
-        loras: List[LoRAInfModule] = self.text_encoder_loras + self.unet_loras
-        for lora in loras:
-            org_module = lora.org_module_ref[0]
-            sd = org_module.state_dict()
-
-            org_weight = sd["weight"]
-            lora_weight = lora.get_weight().to(
-                org_weight.device, dtype=org_weight.dtype
-            )
-            sd["weight"] = org_weight + lora_weight
-            assert sd["weight"].shape == org_weight.shape
-            org_module.load_state_dict(sd)
-
-            org_module._lora_restored = False
-            lora.enabled = False
 
     def apply_max_norm_regularization(self, max_norm_value, device):
         downkeys = []
