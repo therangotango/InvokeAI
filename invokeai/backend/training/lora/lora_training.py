@@ -29,9 +29,6 @@ import invokeai.backend.training.lora.networks.lora as kohya_lora_module
 from invokeai.app.services.config import InvokeAIAppConfig
 from invokeai.app.services.model_manager_service import ModelManagerService
 from invokeai.backend.model_management.models.base import SubModelType
-from invokeai.backend.training.lora.lib.original_unet import (
-    UNet2DConditionModel as KohyaUNet2DConditionModel,
-)
 from invokeai.backend.training.lora.lora_training_config import (
     LoraTrainingConfig,
 )
@@ -137,7 +134,7 @@ def _load_models(
     DDPMScheduler,
     CLIPTextModel,
     AutoencoderKL,
-    KohyaUNet2DConditionModel,
+    UNet2DConditionModel,
 ]:
     """Load all models required for training from disk, transfer them to the
     target training device and cast their weight dtypes.
@@ -153,7 +150,7 @@ def _load_models(
             DDPMScheduler,
             CLIPTextModel,
             AutoencoderKL,
-            KohyaUNet2DConditionModel,
+            UNet2DConditionModel,
         ]: A tuple of loaded models.
     """
     model_manager = ModelManagerService(app_config, logger)
@@ -206,23 +203,6 @@ def _load_models(
     )
     unet: UNet2DConditionModel = UNet2DConditionModel.from_pretrained(
         unet_info.location, subfolder="unet", **pipeline_args
-    )
-
-    # Convert unet to "original unet" to replicate the behavior of kohya_ss.
-    # TODO(ryand): Eliminate the need for this step and just work directly with
-    # diffusers models.
-    original_unet = KohyaUNet2DConditionModel(
-        unet.config.sample_size,
-        unet.config.attention_head_dim,
-        unet.config.cross_attention_dim,
-        unet.config.use_linear_projection,
-        unet.config.upcast_attention,
-    )
-    original_unet.load_state_dict(unet.state_dict())
-    unet: KohyaUNet2DConditionModel = original_unet
-    logger.info(
-        "Converted UNet2DConditionModel to kohya_ss 'original'"
-        " UNet2DConditionModel."
     )
 
     # Disable gradient calculation for model weights to save memory.
@@ -454,17 +434,11 @@ def _generate_validation_images(
     text_encoder: CLIPTextModel,
     tokenizer: CLIPTokenizer,
     noise_scheduler: DDPMScheduler,
-    unet: KohyaUNet2DConditionModel,
+    unet: UNet2DConditionModel,
     train_config: LoraTrainingConfig,
     logger: logging.Logger,
 ):
     logger.info("Generating validation images.")
-
-    # HACK(ryand): The KohyaUNet2DConditionModel model is based on an old
-    # version of the diffusers.UNet2DConditionModel. We monkeypatch its `config`
-    # fields to give it the entries expected by `StableDiffusionPipeline`.
-    unet.config.in_channels = unet.in_channels
-    unet.config.sample_size = unet.sample_size
 
     # Create pipeline.
     pipeline = StableDiffusionPipeline(
@@ -562,7 +536,7 @@ def run_lora_training(
     if train_config.xformers:
         import xformers
 
-        unet.set_use_memory_efficient_attention(True, False)
+        unet.enable_xformers_memory_efficient_attention()
         vae.enable_xformers_memory_efficient_attention()
 
     # Initialize LoRA network.
@@ -622,7 +596,7 @@ def run_lora_training(
     )
 
     prepared_result: tuple[
-        KohyaUNet2DConditionModel,
+        UNet2DConditionModel,
         CLIPTextModel,
         LoRANetwork,
         torch.optim.Optimizer,
