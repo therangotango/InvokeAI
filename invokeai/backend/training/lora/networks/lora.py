@@ -7,7 +7,7 @@
 
 import math
 import os
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import Dict, List, Optional, Type, Union
 from diffusers import AutoencoderKL
 from transformers import CLIPTextModel
 import torch
@@ -27,7 +27,7 @@ class LoRAModule(torch.nn.Module):
     def __init__(
         self,
         lora_name,
-        org_module: torch.nn.Module,
+        orig_module: torch.nn.Module,
         multiplier=1.0,
         lora_dim=4,
         alpha=1,
@@ -39,19 +39,19 @@ class LoRAModule(torch.nn.Module):
         super().__init__()
         self.lora_name = lora_name
 
-        if org_module.__class__.__name__ == "Conv2d":
-            in_dim = org_module.in_channels
-            out_dim = org_module.out_channels
+        if orig_module.__class__.__name__ == "Conv2d":
+            in_dim = orig_module.in_channels
+            out_dim = orig_module.out_channels
         else:
-            in_dim = org_module.in_features
-            out_dim = org_module.out_features
+            in_dim = orig_module.in_features
+            out_dim = orig_module.out_features
 
         self.lora_dim = lora_dim  # a.k.a 'rank'
 
-        if org_module.__class__.__name__ == "Conv2d":
-            kernel_size = org_module.kernel_size
-            stride = org_module.stride
-            padding = org_module.padding
+        if orig_module.__class__.__name__ == "Conv2d":
+            kernel_size = orig_module.kernel_size
+            stride = orig_module.stride
+            padding = orig_module.padding
             self.lora_down = torch.nn.Conv2d(
                 in_dim, self.lora_dim, kernel_size, stride, padding, bias=False
             )
@@ -76,23 +76,23 @@ class LoRAModule(torch.nn.Module):
         torch.nn.init.zeros_(self.lora_up.weight)
 
         self.multiplier = multiplier
-        self.org_module = org_module
+        self.orig_module = orig_module
         self.dropout = dropout
         self.rank_dropout = rank_dropout
         self.module_dropout = module_dropout
 
     def apply_to(self):
-        self.org_forward = self.org_module.forward
-        self.org_module.forward = self.forward
-        del self.org_module
+        self.orig_forward = self.orig_module.forward
+        self.orig_module.forward = self.forward
+        del self.orig_module
 
     def forward(self, x):
-        org_forwarded = self.org_forward(x)
+        orig_forwarded = self.orig_forward(x)
 
         # module dropout
         if self.module_dropout is not None and self.training:
             if torch.rand(1) < self.module_dropout:
-                return org_forwarded
+                return orig_forwarded
 
         lx = self.lora_down(x)
 
@@ -122,7 +122,7 @@ class LoRAModule(torch.nn.Module):
 
         lx = self.lora_up(lx)
 
-        return org_forwarded + lx * self.multiplier * scale
+        return orig_forwarded + lx * self.multiplier * scale
 
 
 def create_network(
@@ -386,40 +386,6 @@ class LoRANetwork(torch.nn.Module):
             lora.apply_to()
             self.add_module(lora.lora_name, lora)
 
-    # マージできるかどうかを返す
-    def is_mergeable(self):
-        return True
-
-    # TODO refactor to common function with apply_to
-    def merge_to(self, text_encoder, unet, weights_sd, dtype, device):
-        apply_text_encoder = apply_unet = False
-        for key in weights_sd.keys():
-            if key.startswith(LoRANetwork.LORA_PREFIX_TEXT_ENCODER):
-                apply_text_encoder = True
-            elif key.startswith(LoRANetwork.LORA_PREFIX_UNET):
-                apply_unet = True
-
-        if apply_text_encoder:
-            print("enable LoRA for text encoder")
-        else:
-            self.text_encoder_loras = []
-
-        if apply_unet:
-            print("enable LoRA for U-Net")
-        else:
-            self.unet_loras = []
-
-        for lora in self.text_encoder_loras + self.unet_loras:
-            sd_for_lora = {}
-            for key in weights_sd.keys():
-                if key.startswith(lora.lora_name):
-                    sd_for_lora[key[len(lora.lora_name) + 1 :]] = weights_sd[
-                        key
-                    ]
-            lora.merge_to(sd_for_lora, dtype, device)
-
-        print(f"weights are merged")
-
     # 二つのText Encoderに別々の学習率を設定できるようにするといいかも
     def prepare_optimizer_params(self, text_encoder_lr, unet_lr, default_lr):
         self.requires_grad_(True)
@@ -446,8 +412,10 @@ class LoRANetwork(torch.nn.Module):
         return all_params
 
     def enable_gradient_checkpointing(self):
-        # not supported
-        pass
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support gradient"
+            " checkpointing."
+        )
 
     def prepare_grad_etc(self, text_encoder, unet):
         self.requires_grad_(True)
@@ -481,60 +449,10 @@ class LoRANetwork(torch.nn.Module):
         else:
             torch.save(state_dict, file)
 
-    # mask is a tensor with values from 0 to 1
-    def set_region(self, sub_prompt_index, is_last_network, mask):
-        if mask.max() == 0:
-            mask = torch.ones_like(mask)
-
-        self.mask = mask
-        self.sub_prompt_index = sub_prompt_index
-        self.is_last_network = is_last_network
-
-        for lora in self.text_encoder_loras + self.unet_loras:
-            lora.set_network(self)
-
-    def set_current_generation(
-        self, batch_size, num_sub_prompts, width, height, shared
-    ):
-        self.batch_size = batch_size
-        self.num_sub_prompts = num_sub_prompts
-        self.current_size = (height, width)
-        self.shared = shared
-
-        # create masks
-        mask = self.mask
-        mask_dic = {}
-        mask = mask.unsqueeze(0).unsqueeze(1)  # b(1),c(1),h,w
-        ref_weight = (
-            self.text_encoder_loras[0].lora_down.weight
-            if self.text_encoder_loras
-            else self.unet_loras[0].lora_down.weight
-        )
-        dtype = ref_weight.dtype
-        device = ref_weight.device
-
-        def resize_add(mh, mw):
-            # print(mh, mw, mh * mw)
-            m = torch.nn.functional.interpolate(
-                mask, (mh, mw), mode="bilinear"
-            )  # doesn't work in bf16
-            m = m.to(device, dtype=dtype)
-            mask_dic[mh * mw] = m
-
-        h = height // 8
-        w = width // 8
-        for _ in range(4):
-            resize_add(h, w)
-            if (
-                h % 2 == 1 or w % 2 == 1
-            ):  # add extra shape if h/w is not divisible by 2
-                resize_add(h + h % 2, w + w % 2)
-            h = (h + 1) // 2
-            w = (w + 1) // 2
-
-        self.mask_dic = mask_dic
-
     def apply_max_norm_regularization(self, max_norm_value, device):
+        """There is a helpful explanation of the motivation behind max norm
+        regularization here: https://github.com/kohya-ss/sd-scripts/pull/545
+        """
         downkeys = []
         upkeys = []
         alphakeys = []
