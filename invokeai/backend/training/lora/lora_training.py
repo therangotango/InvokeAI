@@ -35,9 +35,7 @@ from invokeai.backend.training.lora.lora_training_config import (
 from invokeai.backend.training.lora.networks.lora import LoRANetwork
 
 
-def _initialize_accelerator(
-    out_dir: str, train_config: LoraTrainingConfig
-) -> Accelerator:
+def _initialize_accelerator(out_dir: str, train_config: LoraTrainingConfig) -> Accelerator:
     """Configure Hugging Face accelerate and return an Accelerator.
 
     Args:
@@ -106,20 +104,14 @@ def _get_weight_type(accelerator: Accelerator):
         mixed_precision configuration.
     """
     weight_dtype: torch.dtype = torch.float32
-    if (
-        accelerator.mixed_precision is None
-        or accelerator.mixed_precision == "no"
-    ):
+    if accelerator.mixed_precision is None or accelerator.mixed_precision == "no":
         weight_dtype = torch.float32
     elif accelerator.mixed_precision == "fp16":
         weight_dtype = torch.float16
     else:
         # TODO(ryand): Add support for more precision types (specifically bf16)
         # and test.
-        raise NotImplementedError(
-            f"mixed_precision mode '{accelerator.mixed_precision}' is not yet"
-            " supported."
-        )
+        raise NotImplementedError(f"mixed_precision mode '{accelerator.mixed_precision}' is not yet supported.")
 
     return weight_dtype
 
@@ -129,13 +121,7 @@ def _load_models(
     app_config: InvokeAIAppConfig,
     train_config: LoraTrainingConfig,
     logger: logging.Logger,
-) -> tuple[
-    CLIPTokenizer,
-    DDPMScheduler,
-    CLIPTextModel,
-    AutoencoderKL,
-    UNet2DConditionModel,
-]:
+) -> tuple[CLIPTokenizer, DDPMScheduler, CLIPTextModel, AutoencoderKL, UNet2DConditionModel,]:
     """Load all models required for training from disk, transfer them to the
     target training device and cast their weight dtypes.
 
@@ -161,9 +147,7 @@ def _load_models(
 
     # Find the first known model that matches model_name. Raise an exception if
     # there is no match.
-    model_meta = next(
-        (mm for mm in known_models if mm[0].endswith(model_name)), None
-    )
+    model_meta = next((mm for mm in known_models if mm[0].endswith(model_name)), None)
     assert model_meta is not None, f"Unknown model: {train_config.model}"
 
     # Validate that the model is a diffusers model.
@@ -175,15 +159,9 @@ def _load_models(
     )
 
     # Get sub-model info.
-    tokenizer_info = model_manager.get_model(
-        *model_meta, submodel=SubModelType.Tokenizer
-    )
-    noise_scheduler_info = model_manager.get_model(
-        *model_meta, submodel=SubModelType.Scheduler
-    )
-    text_encoder_info = model_manager.get_model(
-        *model_meta, submodel=SubModelType.TextEncoder
-    )
+    tokenizer_info = model_manager.get_model(*model_meta, submodel=SubModelType.Tokenizer)
+    noise_scheduler_info = model_manager.get_model(*model_meta, submodel=SubModelType.Scheduler)
+    text_encoder_info = model_manager.get_model(*model_meta, submodel=SubModelType.TextEncoder)
     vae_info = model_manager.get_model(*model_meta, submodel=SubModelType.Vae)
     unet_info = model_manager.get_model(*model_meta, submodel=SubModelType.UNet)
 
@@ -198,9 +176,7 @@ def _load_models(
     text_encoder: CLIPTextModel = CLIPTextModel.from_pretrained(
         text_encoder_info.location, subfolder="text_encoder", **pipeline_args
     )
-    vae: AutoencoderKL = AutoencoderKL.from_pretrained(
-        vae_info.location, subfolder="vae", **pipeline_args
-    )
+    vae: AutoencoderKL = AutoencoderKL.from_pretrained(vae_info.location, subfolder="vae", **pipeline_args)
     unet: UNet2DConditionModel = UNet2DConditionModel.from_pretrained(
         unet_info.location, subfolder="unet", **pipeline_args
     )
@@ -223,9 +199,7 @@ def _load_models(
     return tokenizer, noise_scheduler, text_encoder, vae, unet
 
 
-def _initialize_optimizer(
-    train_config: LoraTrainingConfig, trainable_params: list
-) -> torch.optim.Optimizer:
+def _initialize_optimizer(train_config: LoraTrainingConfig, trainable_params: list) -> torch.optim.Optimizer:
     """Initialize an optimizer based on the train_config."""
     # TODO(ryand): Add support for 8-bit Adam optimizer.
     return torch.optim.AdamW(
@@ -262,9 +236,7 @@ def _initialize_dataset(
             cache_dir=train_config.hf_cache_dir,
         )
     else:
-        raise ValueError(
-            "At least one of 'dataset_name' or 'dataset_dir' must be set."
-        )
+        raise ValueError("At least one of 'dataset_name' or 'dataset_dir' must be set.")
 
     # Preprocessing the datasets.
     # We need to tokenize inputs and targets.
@@ -291,9 +263,7 @@ def _initialize_dataset(
                 captions.append(caption)
             elif isinstance(caption, (list, np.ndarray)):
                 # take a random caption if there are multiple
-                captions.append(
-                    random.choice(caption) if is_train else caption[0]
-                )
+                captions.append(random.choice(caption) if is_train else caption[0])
             else:
                 raise ValueError(
                     f"Caption column `{train_config.dataset_caption_column}`"
@@ -320,21 +290,14 @@ def _initialize_dataset(
                 if train_config.center_crop
                 else transforms.RandomCrop(train_config.resolution)
             ),
-            (
-                transforms.RandomHorizontalFlip()
-                if train_config.random_flip
-                else transforms.Lambda(lambda x: x)
-            ),
+            (transforms.RandomHorizontalFlip() if train_config.random_flip else transforms.Lambda(lambda x: x)),
             transforms.ToTensor(),
             transforms.Normalize([0.5], [0.5]),
         ]
     )
 
     def preprocess_train(examples):
-        images = [
-            image.convert("RGB")
-            for image in examples[train_config.dataset_image_column]
-        ]
+        images = [image.convert("RGB") for image in examples[train_config.dataset_image_column]]
         examples["pixel_values"] = [train_transforms(image) for image in images]
         examples["input_ids"] = tokenize_captions(examples)
         return examples
@@ -344,12 +307,8 @@ def _initialize_dataset(
         train_dataset = dataset["train"].with_transform(preprocess_train)
 
     def collate_fn(examples):
-        pixel_values = torch.stack(
-            [example["pixel_values"] for example in examples]
-        )
-        pixel_values = pixel_values.to(
-            memory_format=torch.contiguous_format
-        ).float()
+        pixel_values = torch.stack([example["pixel_values"] for example in examples])
+        pixel_values = pixel_values.to(memory_format=torch.contiguous_format).float()
         input_ids = torch.stack([example["input_ids"] for example in examples])
         return {"pixel_values": pixel_values, "input_ids": input_ids}
 
@@ -401,16 +360,12 @@ def _save_checkpoint(
             checkpoints_to_remove = checkpoints[0:num_to_remove]
 
             logger.info(
-                f"{len(checkpoints)} checkpoints already"
-                " exist. Removing"
-                f" {len(checkpoints_to_remove)} checkpoints."
+                f"{len(checkpoints)} checkpoints already exist. Removing {len(checkpoints_to_remove)} checkpoints."
             )
             logger.info(f"Removing checkpoints: {checkpoints_to_remove}")
 
             for checkpoint_to_remove in checkpoints_to_remove:
-                checkpoint_to_remove = os.path.join(
-                    out_dir, checkpoint_to_remove
-                )
+                checkpoint_to_remove = os.path.join(out_dir, checkpoint_to_remove)
                 if os.path.isfile(checkpoint_to_remove):
                     # Delete checkpoint file.
                     os.remove(checkpoint_to_remove)
@@ -418,9 +373,7 @@ def _save_checkpoint(
                     # Delete checkpoint directory.
                     shutil.rmtree(checkpoint_to_remove)
 
-    save_path = os.path.join(
-        out_dir, f"{full_prefix}{idx:0>8}.{train_config.save_model_as}"
-    )
+    save_path = os.path.join(out_dir, f"{full_prefix}{idx:0>8}.{train_config.save_model_as}")
     network.save_weights(save_path, save_dtype, None)
     # accelerator.save_state(save_path)
     logger.info(f"Saved state to {save_path}")
@@ -499,9 +452,7 @@ def _generate_validation_images(
     torch.cuda.empty_cache()
 
 
-def run_lora_training(
-    app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig
-):
+def run_lora_training(app_config: InvokeAIAppConfig, train_config: LoraTrainingConfig):
     # Create a timestamped directory for all outputs.
     out_dir = os.path.join(train_config.base_output_dir, f"{time.time()}")
     os.makedirs(out_dir)
@@ -518,9 +469,7 @@ def run_lora_training(
     logger.info(accelerator.state, main_process_only=False)
 
     logger.info("Starting LoRA Training.")
-    logger.info(
-        f"Configuration:\n{json.dumps(train_config.dict(), indent=2, default=str)}"
-    )
+    logger.info(f"Configuration:\n{json.dumps(train_config.dict(), indent=2, default=str)}")
     logger.info(f"Output dir: '{out_dir}'")
 
     # Write the configuration to disk.
@@ -529,9 +478,7 @@ def run_lora_training(
 
     weight_dtype = _get_weight_type(accelerator)
 
-    tokenizer, noise_scheduler, text_encoder, vae, unet = _load_models(
-        accelerator, app_config, train_config, logger
-    )
+    tokenizer, noise_scheduler, text_encoder, vae, unet = _load_models(accelerator, app_config, train_config, logger)
 
     if train_config.xformers:
         import xformers
@@ -549,9 +496,7 @@ def run_lora_training(
         unet=unet,
         neuron_dropout=None,
     )
-    lora_network.apply_to(
-        text_encoder, unet, apply_text_encoder=True, apply_unet=True
-    )
+    lora_network.apply_to(text_encoder, unet, apply_text_encoder=True, apply_unet=True)
 
     if train_config.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
@@ -589,10 +534,8 @@ def run_lora_training(
     lr_scheduler: torch.optim.lr_scheduler.LRScheduler = get_scheduler(
         train_config.lr_scheduler,
         optimizer=optimizer,
-        num_warmup_steps=train_config.lr_warmup_steps
-        * train_config.gradient_accumulation_steps,
-        num_training_steps=train_config.max_train_steps
-        * train_config.gradient_accumulation_steps,
+        num_warmup_steps=train_config.lr_warmup_steps * train_config.gradient_accumulation_steps,
+        num_training_steps=train_config.max_train_steps * train_config.gradient_accumulation_steps,
     )
 
     prepared_result: tuple[
@@ -622,12 +565,8 @@ def run_lora_training(
     # Calculate number of epochs and total training steps.
     # Note: A "step" represents a single optimizer weight update operation (i.e.
     # takes into account gradient accumulation steps).
-    num_steps_per_epoch = math.ceil(
-        len(dataloader) / train_config.gradient_accumulation_steps
-    )
-    num_train_epochs = math.ceil(
-        train_config.max_train_steps / num_steps_per_epoch
-    )
+    num_steps_per_epoch = math.ceil(len(dataloader) / train_config.gradient_accumulation_steps)
+    num_train_epochs = math.ceil(train_config.max_train_steps / num_steps_per_epoch)
 
     lora_network.requires_grad_(True)
 
@@ -637,26 +576,15 @@ def run_lora_training(
 
     # Train!
     total_batch_size = (
-        train_config.train_batch_size
-        * accelerator.num_processes
-        * train_config.gradient_accumulation_steps
+        train_config.train_batch_size * accelerator.num_processes * train_config.gradient_accumulation_steps
     )
     logger.info("***** Running training *****")
     logger.info(f"  Num examples = {len(data_loader)}")
     # logger.info(f"  Num Epochs = {args.num_train_epochs}")
-    logger.info(
-        "  Instantaneous batch size per device ="
-        f" {train_config.train_batch_size}"
-    )
-    logger.info(
-        "  Gradient accumulation steps ="
-        f" {train_config.gradient_accumulation_steps}"
-    )
+    logger.info(f"  Instantaneous batch size per device = {train_config.train_batch_size}")
+    logger.info(f"  Gradient accumulation steps = {train_config.gradient_accumulation_steps}")
     logger.info(f"  Parallel processes = {accelerator.num_processes}")
-    logger.info(
-        "  Total train batch size (w. parallel, distributed & accumulation) ="
-        f" {total_batch_size}"
-    )
+    logger.info(f"  Total train batch size (w. parallel, distributed & accumulation) = {total_batch_size}")
     logger.info(f"  Total optimization steps = {train_config.max_train_steps}")
 
     global_step = 0
@@ -679,9 +607,7 @@ def run_lora_training(
             with accelerator.accumulate(lora_network):
                 # Convert images to latent space.
                 with torch.no_grad():
-                    latents = vae.encode(
-                        batch["pixel_values"].to(dtype=weight_dtype)
-                    ).latent_dist.sample()
+                    latents = vae.encode(batch["pixel_values"].to(dtype=weight_dtype)).latent_dist.sample()
                     latents = latents * vae.config.scaling_factor
 
                 # Sample noise that we'll add to the latents.
@@ -705,9 +631,7 @@ def run_lora_training(
 
                 # Add noise to the latents according to the noise magnitude at
                 # each timestep (this is the forward diffusion process).
-                noisy_latents = noise_scheduler.add_noise(
-                    latents, noise, timesteps
-                )
+                noisy_latents = noise_scheduler.add_noise(latents, noise, timesteps)
 
                 # Get the text embedding for conditioning
                 encoder_hidden_states = text_encoder(batch["input_ids"])[0]
@@ -716,49 +640,29 @@ def run_lora_training(
                 if train_config.prediction_type is not None:
                     # Set the prediction_type of scheduler if it's defined in
                     # train_config.
-                    noise_scheduler.register_to_config(
-                        prediction_type=train_config.prediction_type
-                    )
+                    noise_scheduler.register_to_config(prediction_type=train_config.prediction_type)
                 if noise_scheduler.config.prediction_type == "epsilon":
                     target = noise
                 elif noise_scheduler.config.prediction_type == "v_prediction":
-                    target = noise_scheduler.get_velocity(
-                        latents, noise, timesteps
-                    )
+                    target = noise_scheduler.get_velocity(latents, noise, timesteps)
                 else:
-                    raise ValueError(
-                        "Unknown prediction type"
-                        f" {noise_scheduler.config.prediction_type}"
-                    )
+                    raise ValueError(f"Unknown prediction type {noise_scheduler.config.prediction_type}")
 
                 # Predict the noise residual.
-                model_pred = unet(
-                    noisy_latents, timesteps, encoder_hidden_states
-                ).sample
+                model_pred = unet(noisy_latents, timesteps, encoder_hidden_states).sample
 
-                loss = torch.nn.functional.mse_loss(
-                    model_pred.float(), target.float(), reduction="mean"
-                )
+                loss = torch.nn.functional.mse_loss(model_pred.float(), target.float(), reduction="mean")
 
                 # Gather the losses across all processes for logging (if we use
                 # distributed training).
-                avg_loss = accelerator.gather(
-                    loss.repeat(train_config.train_batch_size)
-                ).mean()
-                train_loss += (
-                    avg_loss.item() / train_config.gradient_accumulation_steps
-                )
+                avg_loss = accelerator.gather(loss.repeat(train_config.train_batch_size)).mean()
+                train_loss += avg_loss.item() / train_config.gradient_accumulation_steps
 
                 # Backpropagate.
                 accelerator.backward(loss)
-                if (
-                    accelerator.sync_gradients
-                    and train_config.max_grad_norm is not None
-                ):
+                if accelerator.sync_gradients and train_config.max_grad_norm is not None:
                     params_to_clip = lora_network.parameters()
-                    accelerator.clip_grad_norm_(
-                        params_to_clip, train_config.max_grad_norm
-                    )
+                    accelerator.clip_grad_norm_(params_to_clip, train_config.max_grad_norm)
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad(set_to_none=True)
@@ -771,10 +675,7 @@ def run_lora_training(
                 accelerator.log({"train_loss": train_loss}, step=global_step)
                 train_loss = 0.0
 
-                if (
-                    train_config.save_every_n_steps is not None
-                    and global_step % train_config.save_every_n_steps == 0
-                ):
+                if train_config.save_every_n_steps is not None and global_step % train_config.save_every_n_steps == 0:
                     accelerator.wait_for_everyone()
                     if accelerator.is_main_process:
                         _save_checkpoint(
@@ -797,10 +698,7 @@ def run_lora_training(
                 break
 
         # Save a checkpoint.
-        if (
-            train_config.save_every_n_epochs is not None
-            and (epoch + 1) % train_config.save_every_n_epochs == 0
-        ):
+        if train_config.save_every_n_epochs is not None and (epoch + 1) % train_config.save_every_n_epochs == 0:
             if accelerator.is_main_process:
                 accelerator.wait_for_everyone()
                 _save_checkpoint(
@@ -814,10 +712,7 @@ def run_lora_training(
                 )
 
         # Generate validation images.
-        if (
-            len(train_config.validation_prompts) > 0
-            and (epoch + 1) % train_config.validate_every_n_epochs == 0
-        ):
+        if len(train_config.validation_prompts) > 0 and (epoch + 1) % train_config.validate_every_n_epochs == 0:
             if accelerator.is_main_process:
                 _generate_validation_images(
                     epoch=epoch + 1,

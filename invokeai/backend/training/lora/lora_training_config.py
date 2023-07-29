@@ -18,9 +18,7 @@ class LoraTrainingConfig(BaseModel):
     # The integration to report results and logs to ('all', 'tensorboard',
     # 'wandb', or 'comet_ml'). This value is passed to Hugging Face Accelerate.
     # See accelerate.Accelerator.log_with for more details.
-    report_to: typing.Optional[
-        typing.Literal["all", "tensorboard", "wandb", "comet_ml"]
-    ] = "tensorboard"
+    report_to: typing.Optional[typing.Literal["all", "tensorboard", "wandb", "comet_ml"]] = "tensorboard"
 
     # The file type to save the model as.
     # Note that "ckpt" and "pt" are alternative file extensions for the same
@@ -46,9 +44,7 @@ class LoraTrainingConfig(BaseModel):
     # The mixed precision mode to use ('no','fp16','bf16 or 'fp8'). This value
     # is passed to Hugging Face Accelerate. See accelerate.Accelerator for more
     # details.
-    mixed_precision: typing.Optional[
-        typing.Literal["no", "fp16", "bf16", "fp8"]
-    ] = None
+    mixed_precision: typing.Optional[typing.Literal["no", "fp16", "bf16", "fp8"]] = None
 
     # If true, use xformers for more efficient attention blocks.
     xformers: bool = False
@@ -84,9 +80,7 @@ class LoraTrainingConfig(BaseModel):
     # 'epsilon' or 'v_prediction' or leave `None`. If left to `None` the default
     # prediction type of the scheduler: `noise_scheduler.config.prediction_type`
     # is chosen.
-    prediction_type: typing.Optional[
-        typing.Literal["epsilon", "v_prediction"]
-    ] = None
+    prediction_type: typing.Optional[typing.Literal["epsilon", "v_prediction"]] = None
 
     # Max gradient norm for clipping. Set to None for no clipping.
     max_grad_norm: typing.Optional[float] = 1.0

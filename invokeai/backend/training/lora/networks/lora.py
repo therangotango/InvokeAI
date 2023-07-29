@@ -46,20 +46,14 @@ class LoRAModule(torch.nn.Module):
             kernel_size = orig_module.kernel_size
             stride = orig_module.stride
             padding = orig_module.padding
-            self.lora_down = torch.nn.Conv2d(
-                in_dim, self.lora_dim, kernel_size, stride, padding, bias=False
-            )
-            self.lora_up = torch.nn.Conv2d(
-                self.lora_dim, out_dim, (1, 1), (1, 1), bias=False
-            )
+            self.lora_down = torch.nn.Conv2d(in_dim, self.lora_dim, kernel_size, stride, padding, bias=False)
+            self.lora_up = torch.nn.Conv2d(self.lora_dim, out_dim, (1, 1), (1, 1), bias=False)
         else:
             self.lora_down = torch.nn.Linear(in_dim, self.lora_dim, bias=False)
             self.lora_up = torch.nn.Linear(self.lora_dim, out_dim, bias=False)
 
         if type(alpha) == torch.Tensor:
-            alpha = (
-                alpha.detach().float().numpy()
-            )  # without casting, bf16 causes error
+            alpha = alpha.detach().float().numpy()  # without casting, bf16 causes error
         alpha = self.lora_dim if alpha is None or alpha == 0 else alpha
         self.scale = alpha / self.lora_dim
         self.register_buffer("alpha", torch.tensor(alpha))  # 定数として扱える
@@ -96,10 +90,7 @@ class LoRAModule(torch.nn.Module):
 
         # rank dropout
         if self.rank_dropout is not None and self.training:
-            mask = (
-                torch.rand((lx.size(0), self.lora_dim), device=lx.device)
-                > self.rank_dropout
-            )
+            mask = torch.rand((lx.size(0), self.lora_dim), device=lx.device) > self.rank_dropout
             if len(lx.size()) == 3:
                 mask = mask.unsqueeze(1)  # for Text Encoder
             elif len(lx.size()) == 4:
@@ -108,9 +99,7 @@ class LoRAModule(torch.nn.Module):
 
             # scaling for rank dropout: treat as if the rank is changed
             # maskから計算することも考えられるが、augmentation的な効果を期待してrank_dropoutを用いる
-            scale = self.scale * (
-                1.0 / (1.0 - self.rank_dropout)
-            )  # redundant for readability
+            scale = self.scale * (1.0 / (1.0 - self.rank_dropout))  # redundant for readability
         else:
             scale = self.scale
 
@@ -226,10 +215,7 @@ class LoRANetwork(torch.nn.Module):
         if modules_dim is not None:
             print(f"create LoRA network from weights")
         else:
-            print(
-                f"create LoRA network. base dim (rank): {lora_dim}, alpha:"
-                f" {alpha}"
-            )
+            print(f"create LoRA network. base dim (rank): {lora_dim}, alpha: {alpha}")
             print(
                 f"neuron dropout: p={self.dropout}, rank dropout:"
                 f" p={self.rank_dropout}, module dropout:"
@@ -254,11 +240,7 @@ class LoRANetwork(torch.nn.Module):
                 else (
                     self.LORA_PREFIX_TEXT_ENCODER
                     if text_encoder_idx is None
-                    else (
-                        self.LORA_PREFIX_TEXT_ENCODER1
-                        if text_encoder_idx == 1
-                        else self.LORA_PREFIX_TEXT_ENCODER2
-                    )
+                    else (self.LORA_PREFIX_TEXT_ENCODER1 if text_encoder_idx == 1 else self.LORA_PREFIX_TEXT_ENCODER2)
                 )
             )
             loras = []
@@ -267,9 +249,7 @@ class LoRANetwork(torch.nn.Module):
                     for child_name, child_module in module.named_modules():
                         is_linear = child_module.__class__.__name__ == "Linear"
                         is_conv2d = child_module.__class__.__name__ == "Conv2d"
-                        is_conv2d_1x1 = (
-                            is_conv2d and child_module.kernel_size == (1, 1)
-                        )
+                        is_conv2d_1x1 = is_conv2d and child_module.kernel_size == (1, 1)
 
                         if is_linear or is_conv2d:
                             lora_name = prefix + "." + name + "." + child_name
@@ -305,9 +285,7 @@ class LoRANetwork(torch.nn.Module):
                             loras.append(lora)
             return loras
 
-        text_encoders = (
-            text_encoder if type(text_encoder) == list else [text_encoder]
-        )
+        text_encoders = text_encoder if type(text_encoder) == list else [text_encoder]
 
         # create LoRA for text encoder
         # 毎回すべてのモジュールを作るのは無駄なので要検討
@@ -327,10 +305,7 @@ class LoRANetwork(torch.nn.Module):
                 LoRANetwork.TEXT_ENCODER_TARGET_REPLACE_MODULE,
             )
             self.text_encoder_loras.extend(text_encoder_loras)
-        print(
-            "create LoRA for Text Encoder:"
-            f" {len(self.text_encoder_loras)} modules."
-        )
+        print(f"create LoRA for Text Encoder: {len(self.text_encoder_loras)} modules.")
 
         # extend U-Net target modules if conv2d 3x3 is enabled, or load from weights
         target_modules = LoRANetwork.UNET_TARGET_REPLACE_MODULE
@@ -343,9 +318,7 @@ class LoRANetwork(torch.nn.Module):
         # assertion
         names = set()
         for lora in self.text_encoder_loras + self.unet_loras:
-            assert (
-                lora.lora_name not in names
-            ), f"duplicated lora name: {lora.lora_name}"
+            assert lora.lora_name not in names, f"duplicated lora name: {lora.lora_name}"
             names.add(lora.lora_name)
 
     def set_multiplier(self, multiplier):
@@ -363,9 +336,7 @@ class LoRANetwork(torch.nn.Module):
         info = self.load_state_dict(weights_sd, False)
         return info
 
-    def apply_to(
-        self, text_encoder, unet, apply_text_encoder=True, apply_unet=True
-    ):
+    def apply_to(self, text_encoder, unet, apply_text_encoder=True, apply_unet=True):
         if apply_text_encoder:
             print("enable LoRA for text encoder")
         else:
@@ -406,10 +377,7 @@ class LoRANetwork(torch.nn.Module):
         return all_params
 
     def enable_gradient_checkpointing(self):
-        raise NotImplementedError(
-            f"{self.__class__.__name__} does not support gradient"
-            " checkpointing."
-        )
+        raise NotImplementedError(f"{self.__class__.__name__} does not support gradient checkpointing.")
 
     def save_weights(self, file, dtype, metadata):
         if metadata is not None and len(metadata) == 0:
@@ -459,15 +427,9 @@ class LoRANetwork(torch.nn.Module):
             scale = alpha / dim
 
             if up.shape[2:] == (1, 1) and down.shape[2:] == (1, 1):
-                updown = (
-                    (up.squeeze(2).squeeze(2) @ down.squeeze(2).squeeze(2))
-                    .unsqueeze(2)
-                    .unsqueeze(3)
-                )
+                updown = (up.squeeze(2).squeeze(2) @ down.squeeze(2).squeeze(2)).unsqueeze(2).unsqueeze(3)
             elif up.shape[2:] == (3, 3) or down.shape[2:] == (3, 3):
-                updown = torch.nn.functional.conv2d(
-                    down.permute(1, 0, 2, 3), up
-                ).permute(1, 0, 2, 3)
+                updown = torch.nn.functional.conv2d(down.permute(1, 0, 2, 3), up).permute(1, 0, 2, 3)
             else:
                 updown = up @ down
 

@@ -19,10 +19,7 @@ def parse_args():
         "--cfg_file",
         type=Path,
         required=True,
-        help=(
-            "Path to the YAML training config file. See `LoraTrainingConfig`"
-            " for the supported fields."
-        ),
+        help="Path to the YAML training config file. See `LoraTrainingConfig` for the supported fields.",
     )
     parser.add_argument(
         "--base_output_dir",
