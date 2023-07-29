@@ -629,7 +629,7 @@ def run_lora_training(
         train_config.max_train_steps / num_steps_per_epoch
     )
 
-    lora_network.prepare_grad_etc(text_encoder, unet)
+    lora_network.requires_grad_(True)
 
     # Initialize the trackers we use, and store the training configuration.
     if accelerator.is_main_process:
@@ -672,7 +672,7 @@ def run_lora_training(
     for epoch in range(first_epoch, num_train_epochs):
         logger.info(f"Epoch: {epoch} / {num_train_epochs}")
 
-        lora_network.on_epoch_start(text_encoder, unet)
+        lora_network.train()
 
         train_loss = 0.0
         for step, batch in enumerate(dataloader):
@@ -755,7 +755,7 @@ def run_lora_training(
                     accelerator.sync_gradients
                     and train_config.max_grad_norm is not None
                 ):
-                    params_to_clip = lora_network.get_trainable_params()
+                    params_to_clip = lora_network.parameters()
                     accelerator.clip_grad_norm_(
                         params_to_clip, train_config.max_grad_norm
                     )

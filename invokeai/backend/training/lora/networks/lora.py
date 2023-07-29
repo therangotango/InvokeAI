@@ -11,12 +11,6 @@ from typing import Dict, List, Optional, Type, Union
 from diffusers import AutoencoderKL
 from transformers import CLIPTextModel
 import torch
-import re
-
-
-RE_UPDOWN = re.compile(
-    r"(up|down)_blocks_(\d+)_(resnets|upsamplers|downsamplers|attentions)_(\d+)_"
-)
 
 
 class LoRAModule(torch.nn.Module):
@@ -416,15 +410,6 @@ class LoRANetwork(torch.nn.Module):
             f"{self.__class__.__name__} does not support gradient"
             " checkpointing."
         )
-
-    def prepare_grad_etc(self, text_encoder, unet):
-        self.requires_grad_(True)
-
-    def on_epoch_start(self, text_encoder, unet):
-        self.train()
-
-    def get_trainable_params(self):
-        return self.parameters()
 
     def save_weights(self, file, dtype, metadata):
         if metadata is not None and len(metadata) == 0:
