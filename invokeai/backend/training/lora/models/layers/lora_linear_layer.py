@@ -2,8 +2,10 @@ import math
 
 import torch
 
+from invokeai.backend.training.lora.models.layers import BaseLoRALayer
 
-class LoRALinearLayer(torch.nn.Module):
+
+class LoRALinearLayer(BaseLoRALayer):
     """An implementation of a linear LoRA layer based on the paper 'LoRA: Low-Rank Adaptation of Large Language Models'.
     (https://arxiv.org/pdf/2106.09685.pdf)
     """
@@ -50,6 +52,39 @@ class LoRALinearLayer(torch.nn.Module):
         # https://github.com/microsoft/LoRA/blob/998cfe4d351f4d6b4a47f0921dec2397aa0b9dfe/loralib/layers.py#L123
         torch.nn.init.kaiming_uniform_(self.down.weight, a=math.sqrt(5))
         torch.nn.init.zeros_(self.up.weight)
+
+    @classmethod
+    def from_layer(
+        cls,
+        layer: torch.nn.Linear,
+        rank: int = 4,
+        alpha: float = 1.0,
+        device: torch.device = None,
+        dtype: torch.dtype = None,
+    ):
+        """Initialize a LoRALinearLayer with dimensions that are compatible with 'layer'.
+
+        Args:
+            layer (torch.nn.Linear): The existing layer whose in/out dimensions will be matched.
+            rank, alpha, device, dtype: These args are forwarded to __init__(...).
+
+        Raises:
+            TypeError: If 'layer' has an unsupported type.
+
+        Returns:
+            LoRALinearLayer: The new LoRALinearLayer.
+        """
+        if isinstance(layer, torch.nn.Linear):
+            return cls(
+                layer.in_features,
+                layer.out_features,
+                rank,
+                alpha,
+                device,
+                dtype,
+            )
+        else:
+            raise TypeError(f"'{__class__.__name__}' cannot be initialized from a layer of type '{type(layer)}'.")
 
     def forward(self, input: torch.Tensor):
         down_hidden = self.down(input)

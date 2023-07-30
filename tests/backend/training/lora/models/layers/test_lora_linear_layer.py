@@ -43,3 +43,19 @@ def test_lora_linear_layer_zero_after_init():
 
     assert not torch.allclose(x, torch.Tensor([0.0]), rtol=0.0)  # The random input was non-zero.
     assert torch.allclose(y, torch.Tensor([0.0]), rtol=0.0)  # The untrained outputs are zero.
+
+
+def test_lora_linear_layer_from_layer():
+    """Test that a LoRALinearLayer can be initialized correctly from a torch.nn.Linear layer."""
+    batch_size = 10
+    in_features = 4
+    out_features = 16
+    original_layer = torch.nn.Linear(in_features, out_features)
+
+    lora_layer: LoRALinearLayer = LoRALinearLayer.from_layer(original_layer)
+
+    x = torch.rand((batch_size, in_features))
+    with torch.no_grad():
+        y = lora_layer.forward(x)
+
+    assert y.shape == (batch_size, out_features)
