@@ -2,6 +2,9 @@ import typing
 
 import torch
 
+from invokeai.backend.training.lora.models.layers import BaseLoRALayer
+from invokeai.backend.training.lora.models.lora_module import LoRAModule
+
 
 def find_modules(
     module: torch.nn.Module,
@@ -71,3 +74,58 @@ def find_modules(
             prefix=submodule_prefix,
             parent=module,
         )
+
+
+def inject_lora_layers(
+    module: torch.nn.Module,
+    lora_map: typing.Dict[type[torch.nn.Module], type[BaseLoRALayer]],
+    include_descendants_of: typing.Optional[typing.Set[typing.Type[torch.nn.Module]]] = None,
+    exclude_descendants_of: typing.Optional[typing.Set[typing.Type[torch.nn.Module]]] = None,
+) -> torch.nn.ModuleDict:
+    """Iterates over all of the modules in 'module' and if they are present in 'replace_map' then replaces them with the
+    mapped LoRA layer type.
+
+    Args:
+        module (torch.nn.Module): The original module that will be monkeypatched.
+        lora_map (typing.Dict[type[torch.nn.Module], type[torch.nn.Module]]): A mapping from module types that should
+            have LoRA layers added to the type of LoRA layers that should be used.
+            Example:
+            ```
+            lora_map = {
+                torch.nn.Linear: LoRALinearLayer,
+            }
+            ```
+        include_descendants_of (typing.Set[typing.Type[torch.nn.Module]], optional): Forwarded to find_modules(...).
+        exclude_descendants_of (typing.Set[typing.Type[torch.nn.Module]], optional): Forwarded to find_modules(...).
+
+    Returns:
+        torch.nn.ModuleDict: A ModuleDict of all of the LoRA layers that were injected into the module.
+    """
+    lora_layers = torch.nn.ModuleDict()
+
+    for name, parent, module in find_modules(
+        module=module,
+        targets=lora_map.keys(),
+        include_descendants_of=include_descendants_of,
+        exclude_descendants_of=exclude_descendants_of,
+    ):
+        # Lookup the LoRA class to use.
+        lora_layer_cls = lora_map[type(module)]
+
+        # Initialize the LoRA layer with the correct dimensions.
+        lora_layer = lora_layer_cls.from_layer(module)
+
+        # Join the LoRA layer and the original layer in a module.
+        lora_module = LoRAModule(original_module=module, lora_layer=lora_layer)
+
+        # Monkey-patch the parent module with the new LoRA module.
+        child_field_name = name.split(".")[-1]
+        setattr(
+            parent,
+            child_field_name,
+            lora_module,
+        )
+
+        lora_layers[name] = lora_layer
+
+    return lora_layers

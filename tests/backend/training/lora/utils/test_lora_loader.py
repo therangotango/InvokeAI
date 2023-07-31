@@ -1,6 +1,11 @@
 import torch
 
-from invokeai.backend.training.lora.utils.lora_loader import find_modules
+from invokeai.backend.training.lora.models.layers import LoRALinearLayer
+from invokeai.backend.training.lora.models.lora_module import LoRAModule
+from invokeai.backend.training.lora.utils.lora_loader import (
+    find_modules,
+    inject_lora_layers,
+)
 
 
 def test_find_modules_simple():
@@ -176,3 +181,23 @@ def test_find_modules_duplicate():
     assert result_by_name["linear1"][0] == "linear1"
     assert result_by_name["linear1"][1] == module
     assert result_by_name["linear1"][2] == linear1
+
+
+def test_inject_lora_layers():
+    # Construct mock module.
+    linear1 = torch.nn.Linear(4, 8)
+    conv1 = torch.nn.Conv2d(16, 32, 5)
+    module = torch.nn.ModuleDict(
+        {
+            "linear1": linear1,
+            "conv1": conv1,
+        }
+    )
+
+    lora_layers = inject_lora_layers(module, {torch.nn.Linear: LoRALinearLayer})
+
+    assert len(lora_layers) == 1
+    assert isinstance(module["linear1"], LoRAModule)
+    assert module["linear1"].original_module == linear1
+    assert module["linear1"].lora_layer.down.in_features == linear1.in_features
+    assert module["linear1"].lora_layer.up.out_features == linear1.out_features
