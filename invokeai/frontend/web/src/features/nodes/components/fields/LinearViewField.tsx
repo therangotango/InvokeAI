@@ -6,9 +6,13 @@ import {
   InvocationNodeData,
   InvocationTemplate,
 } from 'features/nodes/types/types';
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import FieldTooltipContent from './FieldTooltipContent';
 import InputFieldRenderer from './InputFieldRenderer';
+import IAIIconButton from 'common/components/IAIIconButton';
+import { FaTrash } from 'react-icons/fa';
+import { useAppDispatch } from 'app/store/storeHooks';
+import { workflowExposedFieldRemoved } from 'features/nodes/store/nodesSlice';
 
 type Props = {
   nodeData: InvocationNodeData;
@@ -23,8 +27,21 @@ const LinearViewField = ({
   field,
   fieldTemplate,
 }: Props) => {
+  const dispatch = useAppDispatch();
+  const handleRemoveField = useCallback(() => {
+    dispatch(
+      workflowExposedFieldRemoved({
+        nodeId: nodeData.id,
+        fieldName: field.name,
+      })
+    );
+  }, [dispatch, field.name, nodeData.id]);
+
   return (
-    <Flex layerStyle="second" sx={{ borderRadius: 'base', w: 'full', p: 2 }}>
+    <Flex
+      layerStyle="second"
+      sx={{ position: 'relative', borderRadius: 'base', w: 'full', p: 2 }}
+    >
       <FormControl as={Flex} sx={{ flexDir: 'column', gap: 1 }}>
         <Tooltip
           label={
@@ -56,6 +73,19 @@ const LinearViewField = ({
           fieldTemplate={fieldTemplate}
         />
       </FormControl>
+      <IAIIconButton
+        onClick={handleRemoveField}
+        aria-label="Remove"
+        label="Remove"
+        icon={<FaTrash />}
+        size="xs"
+        variant="ghost"
+        sx={{
+          position: 'absolute',
+          top: 1,
+          insetInlineEnd: 1,
+        }}
+      />
     </Flex>
   );
 };
