@@ -20,7 +20,7 @@ const VaeModelInputFieldComponent = (
     VaeModelInputFieldTemplate
   >
 ) => {
-  const { nodeData, nodeTemplate, field, fieldTemplate } = props;
+  const { nodeData, field } = props;
   const nodeId = nodeData.id;
   const vae = field.value;
   const dispatch = useAppDispatch();

@@ -20,7 +20,6 @@ const selector = createSelector(stateSelector, ({ system, gallery }) => {
 
 const CurrentImageNode = (props: NodeProps) => {
   const { progressImage, imageDTO } = useSelector(selector);
-  const { id: nodeId, selected } = props;
 
   if (progressImage) {
     return (

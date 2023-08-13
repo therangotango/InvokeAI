@@ -75,14 +75,21 @@ const InspectorPanel = () => {
                 />
               </Flex>
             ) : (
-              <IAINoContentFallback label="No node template" icon={null} />
+              <IAINoContentFallback
+                label={
+                  node
+                    ? 'No template found for selected node'
+                    : 'No node selected'
+                }
+                icon={null}
+              />
             )}
           </TabPanel>
           <TabPanel>
             {node ? (
               <ImageMetadataJSON jsonObject={node.data} label="Node Data" />
             ) : (
-              <IAINoContentFallback label="No node data" icon={null} />
+              <IAINoContentFallback label="No node selected" icon={null} />
             )}
           </TabPanel>
         </TabPanels>

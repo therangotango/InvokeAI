@@ -19,12 +19,7 @@ interface Props {
   fieldTemplate: InputFieldTemplate | OutputFieldTemplate;
 }
 
-const FieldTooltipContent = ({
-  nodeData,
-  nodeTemplate,
-  field,
-  fieldTemplate,
-}: Props) => {
+const FieldTooltipContent = ({ field, fieldTemplate }: Props) => {
   const isInputTemplate = isInputFieldTemplate(fieldTemplate);
 
   return (

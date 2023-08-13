@@ -26,7 +26,7 @@ interface Props {
 }
 
 const FieldTitle = (props: Props) => {
-  const { nodeProps, nodeTemplate, field, fieldTemplate } = props;
+  const { nodeProps, field, fieldTemplate } = props;
   const { label } = field;
   const { title, input } = fieldTemplate;
   const { id: nodeId } = nodeProps.data;

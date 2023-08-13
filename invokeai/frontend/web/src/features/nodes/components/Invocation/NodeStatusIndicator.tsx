@@ -6,7 +6,6 @@ import {
   Image,
   Text,
   Tooltip,
-  forwardRef,
 } from '@chakra-ui/react';
 import { createSelector } from '@reduxjs/toolkit';
 import { stateSelector } from 'app/store/store';
@@ -125,8 +124,8 @@ type StatusIconProps = {
   nodeExecutionState: NodeExecutionState;
 };
 
-const StatusIcon = forwardRef((props: StatusIconProps, ref) => {
-  const { error, progress, progressImage, status } = props.nodeExecutionState;
+const StatusIcon = (props: StatusIconProps) => {
+  const { progress, status } = props.nodeExecutionState;
   if (status === NodeStatus.PENDING) {
     return (
       <Icon
@@ -182,4 +181,5 @@ const StatusIcon = forwardRef((props: StatusIconProps, ref) => {
       />
     );
   }
-});
+  return null;
+};

@@ -3,7 +3,7 @@ import { Tooltip } from '@chakra-ui/tooltip';
 import { useAppToaster } from 'app/components/Toaster';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import IAIInput from 'common/components/IAIInput';
-import { useBuildNodeData } from 'features/nodes/hooks/useBuildInvocation';
+import { useBuildNodeData } from 'features/nodes/hooks/useBuildNodeData';
 import { InvocationTemplate } from 'features/nodes/types/types';
 import Fuse from 'fuse.js';
 import { map } from 'lodash-es';

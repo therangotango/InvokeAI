@@ -15,7 +15,6 @@ import { RootState, stateSelector } from 'app/store/store';
 import { useAppDispatch, useAppSelector } from 'app/store/storeHooks';
 import { requestCanvasRescale } from 'features/canvas/store/thunks/requestCanvasScale';
 import ImageGalleryContent from 'features/gallery/components/ImageGalleryContent';
-import { configSelector } from 'features/system/store/configSelectors';
 import { InvokeTabName, tabMap } from 'features/ui/store/tabMap';
 import { setActiveTab, togglePanels } from 'features/ui/store/uiSlice';
 import { ResourceKey } from 'i18next';
@@ -26,7 +25,6 @@ import { useTranslation } from 'react-i18next';
 import { FaCube, FaFont, FaImage } from 'react-icons/fa';
 import { MdDeviceHub, MdGridOn } from 'react-icons/md';
 import { Panel, PanelGroup } from 'react-resizable-panels';
-import { systemSelector } from '../../system/store/systemSelectors';
 import { useMinimumPanelSize } from '../hooks/useMinimumPanelSize';
 import {
   activeTabIndexSelector,

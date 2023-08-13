@@ -13,9 +13,7 @@ import {
   InvocationTemplate,
   OutputFieldTemplate,
   OutputFieldValue,
-  isInputFieldTemplate,
 } from '../../types/types';
-import { startCase } from 'lodash-es';
 
 export const handleBaseStyles: CSSProperties = {
   position: 'absolute',

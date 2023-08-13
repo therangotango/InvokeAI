@@ -1,11 +1,11 @@
-import { Box, Flex, FormControl, FormLabel, Tooltip } from '@chakra-ui/react';
+import { Box, Flex } from '@chakra-ui/react';
 import { createSelector } from '@reduxjs/toolkit';
 import { stateSelector } from 'app/store/store';
 import { useAppSelector } from 'app/store/storeHooks';
 import { defaultSelectorOptions } from 'app/store/util/defaultMemoizeOptions';
 import IAIDroppable from 'common/components/IAIDroppable';
+import { IAINoContentFallback } from 'common/components/IAIImageFallback';
 import { AddFieldToLinearViewDropData } from 'features/dnd/types';
-import { HANDLE_TOOLTIP_OPEN_DELAY } from 'features/nodes/types/constants';
 import {
   InputFieldTemplate,
   InputFieldValue,
@@ -15,10 +15,8 @@ import {
 } from 'features/nodes/types/types';
 import { forEach } from 'lodash-es';
 import { memo } from 'react';
-import InputFieldRenderer from '../../fields/InputFieldRenderer';
-import ScrollableContent from '../ScrollableContent';
-import FieldTooltipContent from '../../fields/FieldTooltipContent';
 import LinearViewField from '../../fields/LinearViewField';
+import ScrollableContent from '../ScrollableContent';
 
 const selector = createSelector(
   stateSelector,
@@ -56,33 +54,6 @@ const selector = createSelector(
       });
     });
 
-    // const fields = nodes.nodes.filter(isInvocationNode).reduce((acc, node) => {
-    //   const nodeTemplate = nodes.nodeTemplates[node.data.type];
-    //   if (!nodeTemplate) {
-    //     return acc;
-    //   }
-
-    //   forEach(node.data.inputs, (input) => {
-    //     if (!input.isExposed) {
-    //       return;
-    //     }
-
-    //     const fieldTemplate = nodeTemplate.inputs[input.name];
-    //     if (!fieldTemplate) {
-    //       return;
-    //     }
-
-    //     acc.push({
-    //       nodeData: node.data,
-    //       nodeTemplate,
-    //       field: input,
-    //       fieldTemplate,
-    //     });
-    //   });
-
-    //   return acc;
-    // }, [] as { nodeData: InvocationNodeData; nodeTemplate: InvocationTemplate; field: InputFieldValue; fieldTemplate: InputFieldTemplate }[]);
-
     return {
       fields,
     };
@@ -117,15 +88,22 @@ const LinearTabContent = () => {
             w: 'full',
           }}
         >
-          {fields.map(({ nodeData, nodeTemplate, field, fieldTemplate }) => (
-            <LinearViewField
-              key={field.id}
-              nodeData={nodeData}
-              nodeTemplate={nodeTemplate}
-              field={field}
-              fieldTemplate={fieldTemplate}
+          {fields.length ? (
+            fields.map(({ nodeData, nodeTemplate, field, fieldTemplate }) => (
+              <LinearViewField
+                key={field.id}
+                nodeData={nodeData}
+                nodeTemplate={nodeTemplate}
+                field={field}
+                fieldTemplate={fieldTemplate}
+              />
+            ))
+          ) : (
+            <IAINoContentFallback
+              label="No fields added to Linear View"
+              icon={null}
             />
-          ))}
+          )}
         </Flex>
       </ScrollableContent>
       <IAIDroppable data={droppableData} dropLabel="Add Field to Linear View" />

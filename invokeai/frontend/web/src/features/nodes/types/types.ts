@@ -2,6 +2,7 @@ import {
   ControlNetModelParam,
   LoRAModelParam,
   MainModelParam,
+  OnnxModelParam,
   VaeModelParam,
 } from 'features/parameters/types/parameterSchemas';
 import { OpenAPIV3 } from 'openapi-types';
@@ -266,17 +267,17 @@ export type ImageCollectionInputFieldValue = InputFieldValueBase & {
 
 export type MainModelInputFieldValue = InputFieldValueBase & {
   type: 'MainModelField';
-  value?: MainModelParam;
+  value?: MainModelParam | OnnxModelParam;
 };
 
 export type SDXLMainModelInputFieldValue = InputFieldValueBase & {
   type: 'SDXLMainModelField';
-  value?: MainModelParam;
+  value?: MainModelParam | OnnxModelParam;
 };
 
 export type SDXLRefinerModelInputFieldValue = InputFieldValueBase & {
   type: 'SDXLRefinerModelField';
-  value?: MainModelParam;
+  value?: MainModelParam | OnnxModelParam;
 };
 
 export type VaeModelInputFieldValue = InputFieldValueBase & {

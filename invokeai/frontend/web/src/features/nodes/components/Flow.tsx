@@ -110,7 +110,7 @@ export const Flow = () => {
 
   const handleMove: OnMove = useCallback(
     (e, viewport) => {
-      const { x, y, zoom } = viewport;
+      const { zoom } = viewport;
       dispatch(zoomChanged(zoom));
     },
     [dispatch]

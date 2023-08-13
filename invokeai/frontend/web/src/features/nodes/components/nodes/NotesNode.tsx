@@ -10,7 +10,7 @@ import NodeTitle from '../Invocation/NodeTitle';
 import NodeWrapper from '../Invocation/NodeWrapper';
 
 const NotesNode = (props: NodeProps<NotesNodeData>) => {
-  const { id: nodeId, data, selected } = props;
+  const { id: nodeId, data } = props;
   const { notes, isOpen } = data;
   const dispatch = useAppDispatch();
   const handleChange = useCallback(

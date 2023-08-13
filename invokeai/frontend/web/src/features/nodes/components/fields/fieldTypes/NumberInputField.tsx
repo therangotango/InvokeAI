@@ -25,7 +25,7 @@ const NumberInputFieldComponent = (
     IntegerInputFieldTemplate | FloatInputFieldTemplate | SeedInputFieldTemplate
   >
 ) => {
-  const { nodeData, nodeTemplate, field, fieldTemplate } = props;
+  const { nodeData, field, fieldTemplate } = props;
   const nodeId = nodeData.id;
   const dispatch = useAppDispatch();
   const [valueAsString, setValueAsString] = useState<string>(

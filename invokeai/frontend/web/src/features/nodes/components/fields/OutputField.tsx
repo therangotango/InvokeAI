@@ -25,7 +25,6 @@ interface Props {
 
 const OutputField = (props: Props) => {
   const { nodeTemplate, nodeProps, field } = props;
-  const { id: nodeId } = nodeProps.data;
 
   const {
     isConnected,

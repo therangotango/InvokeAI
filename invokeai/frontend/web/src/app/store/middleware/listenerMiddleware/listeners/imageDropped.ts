@@ -9,12 +9,12 @@ import {
 import { imageSelected } from 'features/gallery/store/gallerySlice';
 import {
   fieldImageValueChanged,
-  fieldIsExposedChanged,
   workflowExposedFieldAdded,
 } from 'features/nodes/store/nodesSlice';
 import { initialImageChanged } from 'features/parameters/store/generationSlice';
 import { imagesApi } from 'services/api/endpoints/images';
 import { startAppListening } from '../';
+import { parseify } from 'common/util/serialize';
 
 export const dndDropped = createAction<{
   overData: TypesafeDroppableData;
@@ -36,7 +36,10 @@ export const addImageDroppedListener = () => {
           `Images (${activeData.payload.imageDTOs.length}) dropped`
         );
       } else if (activeData.payloadType === 'NODE_FIELD') {
-        log.debug({ activeData, overData }, 'Node field dropped');
+        log.debug(
+          { activeData: parseify(activeData), overData: parseify(overData) },
+          'Node field dropped'
+        );
       } else {
         log.debug({ activeData, overData }, `Unknown payload dropped`);
       }
@@ -45,7 +48,7 @@ export const addImageDroppedListener = () => {
         overData.actionType === 'ADD_FIELD_TO_LINEAR' &&
         activeData.payloadType === 'NODE_FIELD'
       ) {
-        const { nodeId, field, fieldTemplate } = activeData.payload;
+        const { nodeId, field } = activeData.payload;
         dispatch(
           workflowExposedFieldAdded({
             nodeId,

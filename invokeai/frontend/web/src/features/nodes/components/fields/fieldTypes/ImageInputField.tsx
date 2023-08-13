@@ -19,7 +19,7 @@ import { FieldComponentProps } from './types';
 const ImageInputFieldComponent = (
   props: FieldComponentProps<ImageInputFieldValue, ImageInputFieldTemplate>
 ) => {
-  const { nodeData, nodeTemplate, field, fieldTemplate } = props;
+  const { nodeData, field } = props;
   const nodeId = nodeData.id;
   const dispatch = useAppDispatch();
 

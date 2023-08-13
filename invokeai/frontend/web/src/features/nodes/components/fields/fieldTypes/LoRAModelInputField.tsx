@@ -21,7 +21,7 @@ const LoRAModelInputFieldComponent = (
     LoRAModelInputFieldTemplate
   >
 ) => {
-  const { nodeData, nodeTemplate, field, fieldTemplate } = props;
+  const { nodeData, field } = props;
   const nodeId = nodeData.id;
   const lora = field.value;
   const dispatch = useAppDispatch();

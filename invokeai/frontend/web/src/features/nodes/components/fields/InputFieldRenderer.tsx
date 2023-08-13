@@ -1,6 +1,5 @@
 import { Box } from '@chakra-ui/react';
 import { memo } from 'react';
-import { NodeProps } from 'reactflow';
 import {
   InputFieldTemplate,
   InputFieldValue,

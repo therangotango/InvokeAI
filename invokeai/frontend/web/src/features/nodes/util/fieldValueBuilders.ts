@@ -8,7 +8,6 @@ export const buildInputFieldValue = (
     id,
     name: template.name,
     type: template.type,
-    isExposed: false,
     label: '',
     fieldKind: 'input',
   };
