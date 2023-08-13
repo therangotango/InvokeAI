@@ -1,0 +1,30 @@
+{
+  "AI_website": "seart.ai",
+  "generation_mode": "txt2img",
+  "positive_prompt": "masterpiece, (photorealistic:1.5), best quality, beautiful lighting, real life, ganyu \(genshin impact\), 1girl, naked, ahoge, architecture, bangs, bare shoulders, bell, black gloves, black pantyhose, (blue hair), blush, breasts, chinese knot, detached sleeves, east asian architecture, flower knot, gloves, horns, long hair, looking at viewer, medium breasts, neck bell, night, outdoors, pantyhose, purple eyes, sidelocks, solo, tassel, white sleeves, (ulzzang-6500:0.5) , intricate, high detail, sharp focus, dramatic, beautiful girl , (RAW photo, 8k uhd, film grain), caustics, subsurface scattering, reflections
+",
+  "negative_prompt": "(painting by bad-artist-anime:0.9), (painting by bad-artist:0.9), watermark, text, error, blurry, jpeg artifacts, cropped, worst quality, low quality, normal quality, jpeg artifacts, signature, watermark, username, artist name, (worst quality, low quality:1.4), bad anatomy
+",
+  "width": 1024,
+  "height": 1536,
+  "seed": 2859337204,
+  "cfg_scale": 10,
+  "steps": 40,
+  "scheduler": "DPM++ SDE Karras",
+  "clip_skip": 0,
+  "model": {
+    "model_name": "NeverEnding Dream (NED)",
+    "base_model": "sd-1",
+    "model_type": "main"
+  },
+  "controlnets": [],
+  "loras": [
+    {
+      "lora": {
+        "model_name": "Ganyu (Genshin Impact) - Realistic + Anime - LoRA",
+        "base_model": "sd-1"
+      },
+      "weight": 1
+    }
+  ]
+}
