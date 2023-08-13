@@ -41,6 +41,7 @@ async function main() {
       if (isInvocationPath && hasInvocationProperties) {
         // We only want to make fields optional if they are required
         if (!Array.isArray(schemaObject?.required)) {
+          schemaObject.required = ['id', 'type'];
           return;
         }
 
@@ -60,6 +61,10 @@ async function main() {
             );
           }
         });
+
+        schemaObject.required = [
+          ...new Set(schemaObject.required.concat(['id', 'type'])),
+        ];
 
         return;
       }
