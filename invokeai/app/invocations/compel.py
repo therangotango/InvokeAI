@@ -75,7 +75,7 @@ class CompelOutput(BaseInvocationOutput):
     # fmt: on
 
 
-@title("Prompt (Compel)")
+@title("Compel Prompt")
 @tags("prompt", "compel")
 class CompelInvocation(BaseInvocation):
     """Parse prompt using compel package to conditioning."""
@@ -351,7 +351,7 @@ class SDXLPromptInvocationBase:
         return c, c_pooled, ec
 
 
-@title("SDXL Prompt (Compel)")
+@title("SDXL Compel Prompt")
 @tags("sdxl", "compel", "prompt")
 class SDXLCompelPromptInvocation(BaseInvocation, SDXLPromptInvocationBase):
     """Parse prompt using compel package to conditioning."""
@@ -404,7 +404,7 @@ class SDXLCompelPromptInvocation(BaseInvocation, SDXLPromptInvocationBase):
         )
 
 
-@title("SDXL Refiner Prompt (Compel)")
+@title("SDXL Refiner Compel Prompt")
 @tags("sdxl", "compel", "prompt")
 class SDXLRefinerCompelPromptInvocation(BaseInvocation, SDXLPromptInvocationBase):
     """Parse prompt using compel package to conditioning."""
@@ -452,7 +452,7 @@ class SDXLRefinerCompelPromptInvocation(BaseInvocation, SDXLPromptInvocationBase
         )
 
 
-@title("SDXL Prompt (Raw)")
+@title("SDXL Raw Prompt")
 @tags("sdxl", "prompt")
 class SDXLRawPromptInvocation(BaseInvocation, SDXLPromptInvocationBase):
     """Pass unmodified prompt to conditioning without compel processing."""
@@ -505,7 +505,7 @@ class SDXLRawPromptInvocation(BaseInvocation, SDXLPromptInvocationBase):
         )
 
 
-@title("SDXL Refiner Prompt (Raw)")
+@title("SDXL Refiner Raw Prompt")
 @tags("sdxl", "prompt")
 class SDXLRefinerRawPromptInvocation(BaseInvocation, SDXLPromptInvocationBase):
     """Parse prompt using compel package to conditioning."""
