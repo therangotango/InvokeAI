@@ -320,7 +320,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -332,7 +332,7 @@ export type components = {
        * @default add 
        * @enum {string}
        */
-      type?: "add";
+      type: "add";
       /**
        * A 
        * @description The first number 
@@ -557,7 +557,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -569,7 +569,7 @@ export type components = {
        * @default canny_image_processor 
        * @enum {string}
        */
-      type?: "canny_image_processor";
+      type: "canny_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -620,7 +620,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -632,7 +632,7 @@ export type components = {
        * @default clip_skip 
        * @enum {string}
        */
-      type?: "clip_skip";
+      type: "clip_skip";
       /**
        * CLIP 
        * @description CLIP (tokenizer, text encoder, LoRAs) and skipped layer count
@@ -671,7 +671,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -683,7 +683,7 @@ export type components = {
        * @default collect 
        * @enum {string}
        */
-      type?: "collect";
+      type: "collect";
       /**
        * Collection Item 
        * @description The item to collect (all inputs must be of the same type)
@@ -744,7 +744,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -756,7 +756,7 @@ export type components = {
        * @default compel 
        * @enum {string}
        */
-      type?: "compel";
+      type: "compel";
       /**
        * Prompt 
        * @description Prompt to be parsed by Compel to create a conditioning tensor 
@@ -803,7 +803,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -815,7 +815,7 @@ export type components = {
        * @default content_shuffle_image_processor 
        * @enum {string}
        */
-      type?: "content_shuffle_image_processor";
+      type: "content_shuffle_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -906,7 +906,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -918,7 +918,7 @@ export type components = {
        * @default controlnet 
        * @enum {string}
        */
-      type?: "controlnet";
+      type: "controlnet";
       /**
        * Image 
        * @description The control image
@@ -1042,6 +1042,12 @@ export type components = {
      * @description Core generation metadata for an image generated in InvokeAI.
      */
     CoreMetadata: {
+      /**
+       * App Version 
+       * @description The version of InvokeAI used to generate this image 
+       * @default 3.0.2post1
+       */
+      app_version?: string;
       /**
        * Generation Mode 
        * @description The generation mode that output this image
@@ -1177,7 +1183,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1189,7 +1195,7 @@ export type components = {
        * @default cv_inpaint 
        * @enum {string}
        */
-      type?: "cv_inpaint";
+      type: "cv_inpaint";
       /**
        * Image 
        * @description The image to inpaint
@@ -1233,7 +1239,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1245,7 +1251,7 @@ export type components = {
        * @default div 
        * @enum {string}
        */
-      type?: "div";
+      type: "div";
       /**
        * A 
        * @description The first number 
@@ -1268,7 +1274,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1280,7 +1286,7 @@ export type components = {
        * @default dynamic_prompt 
        * @enum {string}
        */
-      type?: "dynamic_prompt";
+      type: "dynamic_prompt";
       /**
        * Prompt 
        * @description The prompt to parse with dynamicprompts
@@ -1308,7 +1314,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1320,7 +1326,7 @@ export type components = {
        * @default esrgan 
        * @enum {string}
        */
-      type?: "esrgan";
+      type: "esrgan";
       /**
        * Image 
        * @description The input image
@@ -1387,7 +1393,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1399,7 +1405,7 @@ export type components = {
        * @default float_range 
        * @enum {string}
        */
-      type?: "float_range";
+      type: "float_range";
       /**
        * Start 
        * @description The first value of the range 
@@ -1524,7 +1530,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1536,7 +1542,7 @@ export type components = {
        * @default graph 
        * @enum {string}
        */
-      type?: "graph";
+      type: "graph";
       /**
        * Graph 
        * @description The graph to run
@@ -1569,7 +1575,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1581,7 +1587,7 @@ export type components = {
        * @default hed_image_processor 
        * @enum {string}
        */
-      type?: "hed_image_processor";
+      type: "hed_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -1615,7 +1621,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1627,7 +1633,7 @@ export type components = {
        * @default img_blur 
        * @enum {string}
        */
-      type?: "img_blur";
+      type: "img_blur";
       /**
        * Image 
        * @description The image to blur
@@ -1668,7 +1674,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1680,7 +1686,7 @@ export type components = {
        * @default img_chan 
        * @enum {string}
        */
-      type?: "img_chan";
+      type: "img_chan";
       /**
        * Image 
        * @description The image to get the channel from
@@ -1703,7 +1709,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1715,7 +1721,7 @@ export type components = {
        * @default image_collection 
        * @enum {string}
        */
-      type?: "image_collection";
+      type: "image_collection";
       /**
        * Images 
        * @description The image collection to load 
@@ -1750,7 +1756,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1762,7 +1768,7 @@ export type components = {
        * @default img_conv 
        * @enum {string}
        */
-      type?: "img_conv";
+      type: "img_conv";
       /**
        * Image 
        * @description The image to convert
@@ -1785,7 +1791,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1797,7 +1803,7 @@ export type components = {
        * @default img_crop 
        * @enum {string}
        */
-      type?: "img_crop";
+      type: "img_crop";
       /**
        * Image 
        * @description The image to crop
@@ -1918,7 +1924,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1930,7 +1936,7 @@ export type components = {
        * @default img_hue_adjust 
        * @enum {string}
        */
-      type?: "img_hue_adjust";
+      type: "img_hue_adjust";
       /**
        * Image 
        * @description The image to adjust
@@ -1952,7 +1958,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -1964,7 +1970,7 @@ export type components = {
        * @default img_ilerp 
        * @enum {string}
        */
-      type?: "img_ilerp";
+      type: "img_ilerp";
       /**
        * Image 
        * @description The image to lerp
@@ -1992,7 +1998,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2004,7 +2010,7 @@ export type components = {
        * @default img_lerp 
        * @enum {string}
        */
-      type?: "img_lerp";
+      type: "img_lerp";
       /**
        * Image 
        * @description The image to lerp
@@ -2032,7 +2038,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2044,7 +2050,7 @@ export type components = {
        * @default img_luminosity_adjust 
        * @enum {string}
        */
-      type?: "img_luminosity_adjust";
+      type: "img_luminosity_adjust";
       /**
        * Image 
        * @description The image to adjust
@@ -2082,7 +2088,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2094,7 +2100,7 @@ export type components = {
        * @default img_mul 
        * @enum {string}
        */
-      type?: "img_mul";
+      type: "img_mul";
       /**
        * Image1 
        * @description The first image to multiply
@@ -2115,7 +2121,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2127,7 +2133,7 @@ export type components = {
        * @default img_nsfw 
        * @enum {string}
        */
-      type?: "img_nsfw";
+      type: "img_nsfw";
       /**
        * Metadata 
        * @description Optional core metadata to be written to image
@@ -2175,7 +2181,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2187,7 +2193,7 @@ export type components = {
        * @default img_paste 
        * @enum {string}
        */
-      type?: "img_paste";
+      type: "img_paste";
       /**
        * Base Image 
        * @description The base image
@@ -2225,7 +2231,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2237,7 +2243,7 @@ export type components = {
        * @default image_processor 
        * @enum {string}
        */
-      type?: "image_processor";
+      type: "image_processor";
       /**
        * Image 
        * @description The image to process
@@ -2276,7 +2282,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2288,7 +2294,7 @@ export type components = {
        * @default img_resize 
        * @enum {string}
        */
-      type?: "img_resize";
+      type: "img_resize";
       /**
        * Image 
        * @description The image to resize
@@ -2323,7 +2329,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2335,7 +2341,7 @@ export type components = {
        * @default img_saturation_adjust 
        * @enum {string}
        */
-      type?: "img_saturation_adjust";
+      type: "img_saturation_adjust";
       /**
        * Image 
        * @description The image to adjust
@@ -2357,7 +2363,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2369,7 +2375,7 @@ export type components = {
        * @default img_scale 
        * @enum {string}
        */
-      type?: "img_scale";
+      type: "img_scale";
       /**
        * Image 
        * @description The image to scale
@@ -2398,7 +2404,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2410,7 +2416,7 @@ export type components = {
        * @default i2l 
        * @enum {string}
        */
-      type?: "i2l";
+      type: "i2l";
       /**
        * Image 
        * @description The image to encode
@@ -2464,7 +2470,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2476,7 +2482,7 @@ export type components = {
        * @default img_watermark 
        * @enum {string}
        */
-      type?: "img_watermark";
+      type: "img_watermark";
       /**
        * Image 
        * @description The image to check
@@ -2503,7 +2509,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2515,7 +2521,7 @@ export type components = {
        * @default infill_rgba 
        * @enum {string}
        */
-      type?: "infill_rgba";
+      type: "infill_rgba";
       /**
        * Image 
        * @description The image to infill
@@ -2542,7 +2548,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2554,7 +2560,7 @@ export type components = {
        * @default infill_patchmatch 
        * @enum {string}
        */
-      type?: "infill_patchmatch";
+      type: "infill_patchmatch";
       /**
        * Image 
        * @description The image to infill
@@ -2570,7 +2576,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2582,7 +2588,7 @@ export type components = {
        * @default infill_tile 
        * @enum {string}
        */
-      type?: "infill_tile";
+      type: "infill_tile";
       /**
        * Image 
        * @description The image to infill
@@ -2609,7 +2615,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2621,7 +2627,7 @@ export type components = {
        * @default inpaint 
        * @enum {string}
        */
-      type?: "inpaint";
+      type: "inpaint";
       /**
        * Positive Conditioning 
        * @description Positive conditioning tensor
@@ -2809,7 +2815,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2821,7 +2827,7 @@ export type components = {
        * @default iterate 
        * @enum {string}
        */
-      type?: "iterate";
+      type: "iterate";
       /**
        * Collection 
        * @description The list of items to iterate over
@@ -2898,7 +2904,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2910,7 +2916,7 @@ export type components = {
        * @default l2i 
        * @enum {string}
        */
-      type?: "l2i";
+      type: "l2i";
       /**
        * Tiled 
        * @description Processing using overlapping tiles (reduce memory consumption) 
@@ -2948,7 +2954,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -2960,7 +2966,7 @@ export type components = {
        * @default l2l 
        * @enum {string}
        */
-      type?: "l2l";
+      type: "l2l";
       /**
        * Positive Conditioning 
        * @description Positive conditioning tensor
@@ -3026,7 +3032,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3038,7 +3044,7 @@ export type components = {
        * @default leres_image_processor 
        * @enum {string}
        */
-      type?: "leres_image_processor";
+      type: "leres_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -3084,7 +3090,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3096,7 +3102,7 @@ export type components = {
        * @default lineart_anime_image_processor 
        * @enum {string}
        */
-      type?: "lineart_anime_image_processor";
+      type: "lineart_anime_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -3124,7 +3130,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3136,7 +3142,7 @@ export type components = {
        * @default lineart_image_processor 
        * @enum {string}
        */
-      type?: "lineart_image_processor";
+      type: "lineart_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -3222,7 +3228,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3234,7 +3240,7 @@ export type components = {
        * @default load_image 
        * @enum {string}
        */
-      type?: "load_image";
+      type: "load_image";
       /**
        * Image 
        * @description The image to load
@@ -3275,7 +3281,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3287,7 +3293,7 @@ export type components = {
        * @default lora_loader 
        * @enum {string}
        */
-      type?: "lora_loader";
+      type: "lora_loader";
       /**
        * LoRA 
        * @description LoRA model to load
@@ -3356,7 +3362,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3368,7 +3374,7 @@ export type components = {
        * @default main_model_loader 
        * @enum {string}
        */
-      type?: "main_model_loader";
+      type: "main_model_loader";
       /**
        * Model 
        * @description Main model (UNet, VAE, CLIP) to load
@@ -3384,7 +3390,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3396,7 +3402,7 @@ export type components = {
        * @default tomask 
        * @enum {string}
        */
-      type?: "tomask";
+      type: "tomask";
       /**
        * Image 
        * @description The image to create the mask from
@@ -3445,7 +3451,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3457,7 +3463,7 @@ export type components = {
        * @default mediapipe_face_processor 
        * @enum {string}
        */
-      type?: "mediapipe_face_processor";
+      type: "mediapipe_face_processor";
       /**
        * Image 
        * @description The image to process
@@ -3491,7 +3497,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3503,7 +3509,7 @@ export type components = {
        * @default metadata_accumulator 
        * @enum {string}
        */
-      type?: "metadata_accumulator";
+      type: "metadata_accumulator";
       /**
        * Generation Mode 
        * @description The generation mode that output this image
@@ -3656,7 +3662,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3668,7 +3674,7 @@ export type components = {
        * @default midas_depth_image_processor 
        * @enum {string}
        */
-      type?: "midas_depth_image_processor";
+      type: "midas_depth_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -3696,7 +3702,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3708,7 +3714,7 @@ export type components = {
        * @default mlsd_image_processor 
        * @enum {string}
        */
-      type?: "mlsd_image_processor";
+      type: "mlsd_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -3812,7 +3818,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3824,7 +3830,7 @@ export type components = {
        * @default mul 
        * @enum {string}
        */
-      type?: "mul";
+      type: "mul";
       /**
        * A 
        * @description The first number 
@@ -3847,7 +3853,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3859,7 +3865,7 @@ export type components = {
        * @default noise 
        * @enum {string}
        */
-      type?: "noise";
+      type: "noise";
       /**
        * Seed 
        * @description Seed for random number generation
@@ -3920,7 +3926,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3932,7 +3938,7 @@ export type components = {
        * @default normalbae_image_processor 
        * @enum {string}
        */
-      type?: "normalbae_image_processor";
+      type: "normalbae_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -3960,7 +3966,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -3972,7 +3978,7 @@ export type components = {
        * @default l2i_onnx 
        * @enum {string}
        */
-      type?: "l2i_onnx";
+      type: "l2i_onnx";
       /**
        * Latents 
        * @description Denoised latents tensor
@@ -4031,7 +4037,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4043,7 +4049,7 @@ export type components = {
        * @default prompt_onnx 
        * @enum {string}
        */
-      type?: "prompt_onnx";
+      type: "prompt_onnx";
       /**
        * Prompt 
        * @description Raw prompt text (no parsing) 
@@ -4112,7 +4118,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4124,7 +4130,7 @@ export type components = {
        * @default t2l_onnx 
        * @enum {string}
        */
-      type?: "t2l_onnx";
+      type: "t2l_onnx";
       /**
        * Positive Conditioning 
        * @description Positive conditioning tensor
@@ -4253,7 +4259,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4265,7 +4271,7 @@ export type components = {
        * @default onnx_model_loader 
        * @enum {string}
        */
-      type?: "onnx_model_loader";
+      type: "onnx_model_loader";
       /**
        * Model 
        * @description ONNX Main model (UNet, VAE, CLIP) to load
@@ -4281,7 +4287,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4293,7 +4299,7 @@ export type components = {
        * @default openpose_image_processor 
        * @enum {string}
        */
-      type?: "openpose_image_processor";
+      type: "openpose_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -4358,7 +4364,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4370,7 +4376,7 @@ export type components = {
        * @default param_float 
        * @enum {string}
        */
-      type?: "param_float";
+      type: "param_float";
       /**
        * Param 
        * @description The float value 
@@ -4387,7 +4393,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4399,7 +4405,7 @@ export type components = {
        * @default param_int 
        * @enum {string}
        */
-      type?: "param_int";
+      type: "param_int";
       /**
        * A 
        * @description The integer value 
@@ -4416,7 +4422,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4428,7 +4434,7 @@ export type components = {
        * @default param_prompt 
        * @enum {string}
        */
-      type?: "param_prompt";
+      type: "param_prompt";
       /**
        * Prompt 
        * @description The prompt value 
@@ -4445,7 +4451,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4457,7 +4463,7 @@ export type components = {
        * @default param_string 
        * @enum {string}
        */
-      type?: "param_string";
+      type: "param_string";
       /**
        * Text 
        * @description The string value 
@@ -4474,7 +4480,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4486,7 +4492,7 @@ export type components = {
        * @default pidi_image_processor 
        * @enum {string}
        */
-      type?: "pidi_image_processor";
+      type: "pidi_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -4565,7 +4571,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4577,7 +4583,7 @@ export type components = {
        * @default prompt_from_file 
        * @enum {string}
        */
-      type?: "prompt_from_file";
+      type: "prompt_from_file";
       /**
        * File Path 
        * @description Path to prompt text file
@@ -4615,7 +4621,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4627,7 +4633,7 @@ export type components = {
        * @default rand_int 
        * @enum {string}
        */
-      type?: "rand_int";
+      type: "rand_int";
       /**
        * Low 
        * @description The inclusive low value 
@@ -4650,7 +4656,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4662,7 +4668,7 @@ export type components = {
        * @default random_range 
        * @enum {string}
        */
-      type?: "random_range";
+      type: "random_range";
       /**
        * Low 
        * @description The inclusive low value 
@@ -4696,7 +4702,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4708,7 +4714,7 @@ export type components = {
        * @default range 
        * @enum {string}
        */
-      type?: "range";
+      type: "range";
       /**
        * Start 
        * @description The start of the range 
@@ -4737,7 +4743,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4749,7 +4755,7 @@ export type components = {
        * @default range_of_size 
        * @enum {string}
        */
-      type?: "range_of_size";
+      type: "range_of_size";
       /**
        * Start 
        * @description The start of the range 
@@ -4786,7 +4792,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4798,7 +4804,7 @@ export type components = {
        * @default lresize 
        * @enum {string}
        */
-      type?: "lresize";
+      type: "lresize";
       /**
        * Latents 
        * @description Latents tensor
@@ -4847,7 +4853,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4859,7 +4865,7 @@ export type components = {
        * @default sdxl_compel_prompt 
        * @enum {string}
        */
-      type?: "sdxl_compel_prompt";
+      type: "sdxl_compel_prompt";
       /**
        * Prompt 
        * @description Prompt to be parsed by Compel to create a conditioning tensor 
@@ -4922,7 +4928,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -4934,7 +4940,7 @@ export type components = {
        * @default l2l_sdxl 
        * @enum {string}
        */
-      type?: "l2l_sdxl";
+      type: "l2l_sdxl";
       /**
        * Positive Conditioning 
        * @description Positive conditioning tensor
@@ -5001,7 +5007,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5013,7 +5019,7 @@ export type components = {
        * @default sdxl_lora_loader 
        * @enum {string}
        */
-      type?: "sdxl_lora_loader";
+      type: "sdxl_lora_loader";
       /**
        * LoRA 
        * @description LoRA model to load
@@ -5077,7 +5083,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5089,7 +5095,7 @@ export type components = {
        * @default sdxl_model_loader 
        * @enum {string}
        */
-      type?: "sdxl_model_loader";
+      type: "sdxl_model_loader";
       /**
        * Model 
        * @description SDXL Main model (UNet, VAE, CLIP1, CLIP2) to load
@@ -5137,7 +5143,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5149,7 +5155,7 @@ export type components = {
        * @default sdxl_raw_prompt 
        * @enum {string}
        */
-      type?: "sdxl_raw_prompt";
+      type: "sdxl_raw_prompt";
       /**
        * Prompt 
        * @description Raw prompt text (no parsing) 
@@ -5212,7 +5218,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5224,7 +5230,7 @@ export type components = {
        * @default sdxl_refiner_compel_prompt 
        * @enum {string}
        */
-      type?: "sdxl_refiner_compel_prompt";
+      type: "sdxl_refiner_compel_prompt";
       /**
        * Style 
        * @description Prompt to be parsed by Compel to create a conditioning tensor 
@@ -5272,7 +5278,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5284,7 +5290,7 @@ export type components = {
        * @default sdxl_refiner_model_loader 
        * @enum {string}
        */
-      type?: "sdxl_refiner_model_loader";
+      type: "sdxl_refiner_model_loader";
       /**
        * Model 
        * @description SDXL Refiner Main Modde (UNet, VAE, CLIP2) to load
@@ -5327,7 +5333,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5339,7 +5345,7 @@ export type components = {
        * @default sdxl_refiner_raw_prompt 
        * @enum {string}
        */
-      type?: "sdxl_refiner_raw_prompt";
+      type: "sdxl_refiner_raw_prompt";
       /**
        * Style 
        * @description Raw prompt text (no parsing) 
@@ -5387,7 +5393,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5399,7 +5405,7 @@ export type components = {
        * @default t2l_sdxl 
        * @enum {string}
        */
-      type?: "t2l_sdxl";
+      type: "t2l_sdxl";
       /**
        * Positive Conditioning 
        * @description Positive conditioning tensor
@@ -5455,7 +5461,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5467,7 +5473,7 @@ export type components = {
        * @default lscale 
        * @enum {string}
        */
-      type?: "lscale";
+      type: "lscale";
       /**
        * Latents 
        * @description Latents tensor
@@ -5507,7 +5513,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5519,7 +5525,7 @@ export type components = {
        * @default segment_anything_processor 
        * @enum {string}
        */
-      type?: "segment_anything_processor";
+      type: "segment_anything_processor";
       /**
        * Image 
        * @description The image to process
@@ -5535,7 +5541,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5547,7 +5553,7 @@ export type components = {
        * @default show_image 
        * @enum {string}
        */
-      type?: "show_image";
+      type: "show_image";
       /**
        * Image 
        * @description The image to show
@@ -5713,7 +5719,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5725,7 +5731,7 @@ export type components = {
        * @default step_param_easing 
        * @enum {string}
        */
-      type?: "step_param_easing";
+      type: "step_param_easing";
       /**
        * Easing 
        * @description The easing function to use 
@@ -5836,7 +5842,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5848,7 +5854,7 @@ export type components = {
        * @default sub 
        * @enum {string}
        */
-      type?: "sub";
+      type: "sub";
       /**
        * A 
        * @description The first number 
@@ -5871,7 +5877,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5883,7 +5889,7 @@ export type components = {
        * @default t2l 
        * @enum {string}
        */
-      type?: "t2l";
+      type: "t2l";
       /**
        * Steps 
        * @description Number of steps to run 
@@ -5956,7 +5962,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -5968,7 +5974,7 @@ export type components = {
        * @default tile_image_processor 
        * @enum {string}
        */
-      type?: "tile_image_processor";
+      type: "tile_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -6042,7 +6048,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -6054,7 +6060,7 @@ export type components = {
        * @default vae_loader 
        * @enum {string}
        */
-      type?: "vae_loader";
+      type: "vae_loader";
       /**
        * VAE 
        * @description VAE model to load
@@ -6119,7 +6125,7 @@ export type components = {
        * Id 
        * @description The id of this node. Must be unique among all nodes.
        */
-      id?: string;
+      id: string;
       /**
        * Is Intermediate 
        * @description Whether or not this node is an intermediate node. 
@@ -6131,7 +6137,7 @@ export type components = {
        * @default zoe_depth_image_processor 
        * @enum {string}
        */
-      type?: "zoe_depth_image_processor";
+      type: "zoe_depth_image_processor";
       /**
        * Image 
        * @description The image to process
@@ -6211,11 +6217,11 @@ export type components = {
      */
     StableDiffusion1ModelFormat: "checkpoint" | "diffusers";
     /**
-     * ControlNetModelFormat 
+     * StableDiffusionOnnxModelFormat 
      * @description An enumeration. 
      * @enum {string}
      */
-    ControlNetModelFormat: "checkpoint" | "diffusers";
+    StableDiffusionOnnxModelFormat: "olive" | "onnx";
     /**
      * StableDiffusionXLModelFormat 
      * @description An enumeration. 
@@ -6223,11 +6229,11 @@ export type components = {
      */
     StableDiffusionXLModelFormat: "checkpoint" | "diffusers";
     /**
-     * StableDiffusionOnnxModelFormat 
+     * ControlNetModelFormat 
      * @description An enumeration. 
      * @enum {string}
      */
-    StableDiffusionOnnxModelFormat: "olive" | "onnx";
+    ControlNetModelFormat: "checkpoint" | "diffusers";
     /**
      * StableDiffusion2ModelFormat 
      * @description An enumeration. 
