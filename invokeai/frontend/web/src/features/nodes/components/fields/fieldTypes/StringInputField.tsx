@@ -35,7 +35,7 @@ const StringInputFieldComponent = (
         onChange={handleValueChanged}
         value={field.value}
         rows={5}
-        resize="both"
+        resize="none"
       />
     );
   }
